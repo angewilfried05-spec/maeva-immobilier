@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Guide MAEVA IMMOBILIER</title>
+<style>
+  @page { margin: 2cm; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1c2733; font-size: 14px; line-height: 1.6; }
+  .titre { text-align: center; color: #1a4f8b; font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .sous-titre { text-align: center; color: #5b6b7c; font-size: 15px; margin-bottom: 30px; }
+  h2 { color: #1a4f8b; font-size: 19px; border-bottom: 2px solid #1a4f8b; padding-bottom: 6px; margin-top: 28px; }
+  h3 { color: #123a68; font-size: 16px; margin-top: 20px; }
+  .etape { background: #f2f4f7; border-left: 4px solid #1a4f8b; padding: 12px 16px; margin: 10px 0; border-radius: 6px; }
+  .etape b { color: #1a4f8b; }
+  .astuce { background: #e8f7ee; border-left: 4px solid #1e8a4c; padding: 10px 14px; margin: 10px 0; border-radius: 6px; }
+  .attention { background: #fff4e5; border-left: 4px solid #d68910; padding: 10px 14px; margin: 10px 0; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { background: #1a4f8b; color: #fff; padding: 8px; text-align: left; }
+  td { padding: 8px; border-bottom: 1px solid #d5dbe3; }
+  .pied { text-align: center; color: #7a8899; font-size: 12px; margin-top: 40px; border-top: 1px solid #d5dbe3; padding-top: 12px; }
+  .num { display: inline-block; background: #1a4f8b; color: #fff; width: 26px; height: 26px; border-radius: 50%; text-align: center; line-height: 26px; font-weight: 700; margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<div class="titre">MAEVA IMMOBILIER</div>
+<div class="sous-titre">Guide d'utilisation — Gestion locative</div>
+
+<h2>Première utilisation</h2>
+
+<div class="etape">
+  <span class="num">1</span><b>Se connecter</b><br/>
+  Au lancement de l'application, l'écran de connexion apparaît.<br/>
+  Identifiant : <b>tahbiarmand</b> &nbsp;•&nbsp; Mot de passe : <b>Carla2008</b><br/>
+  Cochez « Se souvenir de moi » pour ne plus avoir à retaper ces informations.
+</div>
+
+<div class="etape">
+  <span class="num">2</span><b>Importer le fichier Excel existant</b><br/>
+  Au premier lancement, l'application propose automatiquement d'importer votre fichier
+  <i>LOYER 8iem DU MOIS DE AOUT 2026 ANGRE.xlsx</i>. Cliquez sur <b>« Importer »</b> puis vérifiez
+  l'aperçu (bâtiments, locataires, loyers, dépenses) et cliquez sur <b>« Valider l'import »</b>.<br/>
+  Tout est ensuite dans la base — plus besoin de fichier Excel mensuel.
+</div>
+
+<div class="astuce">
+  <b>Astuce :</b> L'import ne supprime jamais les données existantes. Si un locataire existe déjà,
+  ses informations sont mises à jour. Vous pouvez ré-importer un fichier sans risque.
+</div>
+
+<h2>Au quotidien — chaque mois</h2>
+
+<h3>Saisir les loyers du mois</h3>
+<div class="etape">
+  Menu <b>« Saisie des loyers »</b> → choisissez le mois en haut à droite (◀ ▶).<br/>
+  Pour chaque locataire, tapez la <b>quantité de mois payée</b> dans la colonne « Qté / mois » :
+  <ul>
+    <li><b>0</b> = rien payé ce mois</li>
+    <li><b>1</b> = le mois en cours est payé</li>
+    <li><b>2, 3…</b> = paiement en avance couvrant plusieurs mois</li>
+    <li><b>0,5</b> = paiement partiel (la moitié du mois)</li>
+  </ul>
+  Le total se calcule automatiquement. La sauvegarde est instantanée (pas de bouton « Enregistrer »).<br/>
+  Vous pouvez ajouter une note libre (ex: « PAYER 3 MOIS 31/09/26 ») dans la dernière colonne.
+</div>
+
+<h3>Saisir les dépenses du mois</h3>
+<div class="etape">
+  Menu <b>« Dépenses »</b> → cliquez <b>« + Ajouter une dépense »</b>.<br/>
+  La désignation est une liste déroulante : les dépenses déjà connues (salaires, wifi, syndic…)
+  sont proposées et se pré-remplissent automatiquement. Choisissez <b>« + Nouvelle dépense… »</b>
+  pour en créer une inédite.
+</div>
+
+<h3>Voir le tableau de bord</h3>
+<div class="etape">
+  Menu <b>« Tableau de bord »</b> → tout est visible immédiatement :
+  <ul>
+    <li>Loyers attendus vs perçus, dépenses, solde du mois</li>
+    <li>Répartition par bâtiment</li>
+    <li>Liste des <b>locataires en retard</b> (calculé automatiquement, plus besoin de le noter à la main)</li>
+    <li>Montant remis au Boss (modifiable en cliquant sur « Modifier »)</li>
+  </ul>
+</div>
+
+<h3>Exporter le rapport Excel (comme avant)</h3>
+<div class="etape">
+  Bouton <b>« Exporter Excel »</b> sur le tableau de bord → génère un fichier Excel
+  <b>exactement au même format</b> que votre fichier actuel (mêmes colonnes, mêmes sections,
+  formules de calcul, logo). Le fichier est enregistré dans
+  <i>Documents / MAEVA IMMOBILIER / rapports /</i> et s'ouvre automatiquement.
+</div>
+
+<h2>Fonctionnalités utiles</h2>
+
+<table>
+  <tr><th>Menu</th><th>À quoi ça sert</th></tr>
+  <tr><td><b>Locataires</b></td><td>Ajouter/modifier un locataire, marquer une porte « vide », voir l'historique des paiements d'un locataire</td></tr>
+  <tr><td><b>Bâtiments</b></td><td>Ajouter/modifier un bâtiment (SOLEIL 2, FAYA, etc.)</td></tr>
+  <tr><td><b>Historique</b></td><td>Consulter les mois précédents, comparer mois par mois, exporter un mois passé en Excel</td></tr>
+  <tr><td><b>Recherche</b></td><td>Trouver un locataire par son nom et voir son historique de paiement</td></tr>
+  <tr><td><b>Utilisateurs</b></td><td>Créer d'autres comptes (comptable, gérant) avec des droits différents</td></tr>
+</table>
+
+<h2>Changer le mot de passe</h2>
+<div class="etape">
+  Cliquez sur votre nom en bas à gauche de la barre latérale, puis sur <b>« Changer le mot de passe »</b>.
+  Saisissez l'ancien puis le nouveau.
+</div>
+
+<h2>Sauvegarde et sécurité</h2>
+<div class="astuce">
+  <b>Sauvegarde automatique :</b> chaque saisie est enregistrée immédiatement dans la base de données.
+  Aucune donnée n'est perdue en cas de coupure électrique.
+</div>
+<div class="attention">
+  <b>Sauvegarde manuelle conseillée :</b> de temps en temps, cliquez sur <b>« Ouvrir le dossier »</b>
+  en bas de la barre latérale et copiez le dossier <i>MAEVA IMMOBILIER</i> sur une clé USB.
+</div>
+<div class="astuce">
+  <b>Tout reste en local :</b> aucune donnée n'est envoyée sur internet. L'application fonctionne
+  sans connexion.
+</div>
+
+<div class="pied">
+  MAEVA IMMOBILIER — Guide d'utilisation • Application de gestion locative<br/>
+  Pour toute question, contactez votre administrateur.
+</div>
+
+</body>
+</html>
