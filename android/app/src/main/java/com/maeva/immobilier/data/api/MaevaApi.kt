@@ -38,4 +38,19 @@ interface MaevaApi {
 
     @GET("api/relances")
     suspend fun relances(@Query("mois") mois: String): RelancesReponse
+
+    @GET("api/unites")
+    suspend fun unites(): List<Unite>
+
+    @GET("api/unites/{id}")
+    suspend fun unite(@retrofit2.http.Path("id") id: Int): UniteDetail
+
+    @GET("api/resumes")
+    suspend fun resumes(): List<ResumeMois>
+
+    @POST("api/resumes/{mois}/cloturer")
+    suspend fun cloturer(@retrofit2.http.Path("mois") mois: String, @Body body: ClotureBody): Response<Unit>
+
+    @POST("api/resumes/{mois}/decloturer")
+    suspend fun decloturer(@retrofit2.http.Path("mois") mois: String): Response<Unit>
 }

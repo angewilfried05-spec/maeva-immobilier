@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -29,8 +30,11 @@ import androidx.navigation.compose.rememberNavController
 import com.maeva.immobilier.ui.connexion.ConnexionScreen
 import com.maeva.immobilier.ui.dashboard.DashboardScreen
 import com.maeva.immobilier.ui.encaisser.EncaisserScreen
+import com.maeva.immobilier.ui.historique.HistoriqueScreen
 import com.maeva.immobilier.ui.locataires.FicheLocataireScreen
 import com.maeva.immobilier.ui.locataires.LocatairesScreen
+import com.maeva.immobilier.ui.portes.PorteDetailScreen
+import com.maeva.immobilier.ui.portes.PortesScreen
 import com.maeva.immobilier.ui.relances.RelancesScreen
 import com.maeva.immobilier.ui.theme.MaevaTheme
 import kotlinx.coroutines.flow.map
@@ -47,6 +51,7 @@ private val ONGLETS = listOf(
     Triple("dashboard", "Accueil", Icons.Default.Home),
     Triple("encaisser", "Encaisser", Icons.Default.ShoppingCart),
     Triple("locataires", "Locataires", Icons.Default.Person),
+    Triple("portes", "Portes", Icons.Default.List),
     Triple("relances", "Relances", Icons.Default.MailOutline),
 )
 
@@ -81,7 +86,7 @@ fun Racine() {
                                     }
                                 },
                                 icon = { Icon(icone, contentDescription = label) },
-                                label = { Text(label) },
+                                label = { Text(label, maxLines = 1) },
                             )
                         }
                     }
@@ -92,7 +97,9 @@ fun Racine() {
                     startDestination = "dashboard",
                     modifier = Modifier.padding(padding),
                 ) {
-                    composable("dashboard") { DashboardScreen(app) }
+                    composable("dashboard") {
+                        DashboardScreen(app, onHistorique = { nav.navigate("historique") })
+                    }
                     composable("encaisser") { EncaisserScreen(app) }
                     composable("locataires") {
                         LocatairesScreen(app) { id -> nav.navigate("locataire/$id") }
@@ -100,7 +107,14 @@ fun Racine() {
                     composable("locataire/{id}") { entree ->
                         FicheLocataireScreen(app, entree.arguments?.getString("id")?.toIntOrNull() ?: 0)
                     }
+                    composable("portes") {
+                        PortesScreen(app) { id -> nav.navigate("porte/$id") }
+                    }
+                    composable("porte/{id}") { entree ->
+                        PorteDetailScreen(app, entree.arguments?.getString("id")?.toIntOrNull() ?: 0)
+                    }
                     composable("relances") { RelancesScreen(app) }
+                    composable("historique") { HistoriqueScreen(app) }
                 }
             }
         }

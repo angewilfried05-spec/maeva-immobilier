@@ -117,6 +117,53 @@ data class VersementRow(
 data class LoyerHist(val a_partir_de: String, val montant: Int)
 data class NoteMois(val mois: String, val note: String?)
 
+// Unités physiques (portes) : GET /api/v1/unites
+data class Unite(
+    val id: Int,
+    val batiment_id: Int,
+    val porte: String?,
+    val loyer_base: Int?,
+    val batiment: String?,
+    val contrat_id: Int?,
+    val nom_locataire: String?,
+    val statut: String, // "occupee" ou "libre"
+)
+
+data class Occupation(
+    val id: Int,
+    val nom_locataire: String,
+    val telephone: String?,
+    val loyer_mensuel: Int,
+    val date_entree: String?,
+    val statut: String,
+    val debut_suivi: String?,
+    val mois_sortie: String?,
+    val caution: Int?,
+)
+
+data class UniteDetail(
+    val id: Int,
+    val porte: String?,
+    val loyer_base: Int?,
+    val batiment: String?,
+    val occupations: List<Occupation> = emptyList(),
+)
+
+// Résumés mensuels (historique + clôtures) : GET /api/resumes
+data class ResumeMois(
+    val mois: String,
+    val total_loyers_attendus: Int?,
+    val total_loyers_percus: Int?,
+    val total_depenses: Int?,
+    val solde: Int?,
+    val montant_remis_au_proprietaire: Int?,
+    val cloture: Boolean = false,
+    val cloture_le: String?,
+    val cloture_par: String?,
+)
+
+data class ClotureBody(val remis_proprietaire: Int? = null)
+
 data class FicheLocataire(
     val id: Int,
     val nom_locataire: String,

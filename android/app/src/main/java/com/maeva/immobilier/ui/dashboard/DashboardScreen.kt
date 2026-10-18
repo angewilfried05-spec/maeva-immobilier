@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 @Composable
-fun DashboardScreen(app: MaevaApp) {
+fun DashboardScreen(app: MaevaApp, onHistorique: () -> Unit = {}) {
     val mois = LocalDate.now().toString().substring(0, 7)
     val scope = rememberCoroutineScope()
     val dash by produceState<Dashboard?>(initialValue = null) {
@@ -60,8 +60,9 @@ fun DashboardScreen(app: MaevaApp) {
             }) { Text("Déconnexion") }
         }
         nom?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        TextButton(onClick = onHistorique) { Text("Historique des mois →") }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(6.dp))
         val d = dash
         if (d == null) {
             Text("Chargement… ou serveur injoignable", modifier = Modifier.padding(20.dp))
