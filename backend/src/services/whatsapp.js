@@ -357,15 +357,12 @@ async function envoyerDocument(to, fichier, legende = '') {
     try {
       envoye = await waClient.sendMessage(`${numero}@c.us`, media, { caption });
     } catch {
+      // Renvoi uniquement si l'envoi lui-même a échoué — jamais sur un
+      // délai d'accusé (les acks médias arrivent tard ou pas du tout :
+      // renvoyer ici créerait un doublon).
       envoye = await waClient.sendMessage(resolvedId, media, { caption });
     }
-    let distribue = await attendreDistribution(waClient, envoye);
-    if (!distribue && resolvedId !== `${numero}@c.us`) {
-      try {
-        const renvoi = await waClient.sendMessage(resolvedId, media, { caption });
-        distribue = await attendreDistribution(waClient, renvoi);
-      } catch {}
-    }
+    const distribue = await attendreDistribution(waClient, envoye);
     return { success: true, delivered: distribue };
   };
 
