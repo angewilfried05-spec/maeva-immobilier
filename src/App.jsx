@@ -47,6 +47,7 @@ export default function App() {
   const [utilisateur, setUtilisateur] = useState(null);
   const [mois, setMois] = useState(moisCourant());
   const [showMdp, setShowMdp] = useState(false);
+  const [menuOuvert, setMenuOuvert] = useState(false);
 
   // Données du mois : une seule requête partagée par toutes les pages, en cache.
   const { data, error } = useQuery({
@@ -106,11 +107,18 @@ export default function App() {
 
   return (
     <>
-      <nav className="sidebar">
+      <header className="barre-haut">
+        <button className="burger" onClick={() => setMenuOuvert(true)} aria-label="Menu">☰</button>
+        <img className="logo-mini" src={logo} alt="MAEVA IMMOBILIER" />
+        <span className="titre-mobile">MAEVA IMMOBILIER</span>
+      </header>
+      {menuOuvert && <button className="sidebar-fond" aria-label="Fermer le menu" onClick={() => setMenuOuvert(false)} />}
+      <nav className={`sidebar${menuOuvert ? ' ouverte' : ''}`}>
         <div className="logo-boite"><img src={logo} alt="MAEVA IMMOBILIER" /></div>
         <div className="sidebar-scroll">
           {pagesAffichees.map(([id, label]) => (
-            <NavLink key={id} to={`/${id}`} className={({ isActive }) => (isActive ? 'actif' : '')}>
+            <NavLink key={id} to={`/${id}`} onClick={() => setMenuOuvert(false)}
+              className={({ isActive }) => (isActive ? 'actif' : '')}>
               {label}
             </NavLink>
           ))}
