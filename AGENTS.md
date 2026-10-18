@@ -84,3 +84,16 @@ Le backend est chargé dans le process Electron : toute modification backend né
 - **React Query** : les données du mois sont une seule requête `['dashboard', mois]` partagée
   (cache 15 s) ; le prop `reload()` des pages invalide la requête. `qc.clear()` à la déconnexion.
 - Pages dans `src/pages/`, composants réutilisables dans `src/components/`, helpers dans `src/utils/`.
+
+## Android (`android/`)
+
+- Kotlin + Jetpack Compose M3 + Retrofit/OkHttp + Room (file hors-ligne) + WorkManager + DataStore.
+- Pas de Hilt : injection manuelle via `MaevaApp` (`session`, `reseau`, `db`).
+- **Build** : `JAVA_HOME="C:\Program Files\Android\Android Studio\jbr" ./gradlew assembleDebug`
+  (le shell n'a pas Java par défaut ; le JBR d'Android Studio fait l'affaire).
+  compileSdk 34 — deps verrouillées API 34 (pas de work-runtime ≥ 2.10 ni core ≥ 1.15).
+- APK : `app/build/outputs/apk/debug/app-debug.apk`.
+- adb : préciser le serial si plusieurs appareils (`adb -s R5CT306VFDR …`).
+- Quittances : téléchargées en auth via `data/Quittances.kt`, ouvertes via FileProvider
+  (authority `${applicationId}.fichiers`, chemins dans `res/xml/chemins_fichiers.xml`).
+- L'URL serveur n'est jamais en dur : configurable à la connexion, défaut `https://maeva-immobilier.com`.
