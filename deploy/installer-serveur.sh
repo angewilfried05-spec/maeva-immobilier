@@ -73,5 +73,12 @@ ufw status | head -8
 echo "==> Mises à jour de sécurité automatiques"
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
+echo "==> Sauvegarde pg_dump quotidienne + surveillance santé"
+mkdir -p /var/backups/maeva-pg && chown postgres:postgres /var/backups/maeva-pg
+install -m 755 "$DOSSIER_DEPLOY/sauvegarde-pg.sh" /etc/cron.daily/maeva-pgdump
+install -m 755 "$DOSSIER_DEPLOY/surveiller.sh" /usr/local/sbin/maeva-surveiller
+printf '*/5 * * * * root /usr/local/sbin/maeva-surveiller\n' > /etc/cron.d/maeva-surveillance
+chmod 644 /etc/cron.d/maeva-surveillance
+
 echo "✅ Serveur prêt. Étapes suivantes : deploy/deployer.sh (depuis le PC), puis HTTPS :"
 echo "   certbot --nginx -d maeva-immobilier.com -d www.maeva-immobilier.com --redirect"
