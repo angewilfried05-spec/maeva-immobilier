@@ -18,8 +18,8 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
 
   const exporterExcel = async () => {
     try {
-      const r = await api.post('/api/export/rapport', { mois });
-      setMessage({ type: 'succes', txt: `Rapport Excel créé : ${r.chemin}` });
+      const nom = await api.telecharger('POST', '/api/export/rapport', { mois });
+      setMessage({ type: 'succes', txt: `Rapport Excel téléchargé : ${nom}` });
     } catch (e) { setMessage({ type: 'erreur', txt: e.message }); }
   };
 

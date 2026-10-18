@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { genererDevisDocx, genererDevisPdf } = require('../services/generer-devis');
+const { dossierTemporaire, envoyerEtSupprimer } = require('../utils/envoi-fichier');
 
 const router = express.Router();
 
@@ -261,10 +262,9 @@ router.post('/:id/export', requireAuth, async (req, res) => {
     const config = {};
     cfgRows.rows.forEach((r) => { config[r.cle] = r.valeur; });
     const d = { ...devis.rows[0], lignes: lignes.rows };
-    let outPath;
-    if (format === 'pdf') outPath = await genererDevisPdf(d, config);
-    else outPath = await genererDevisDocx(d, config);
-    res.json({ ok: true, chemin: outPath });
+    const dossier = dossierTemporaire();
+    const fichier = format === 'pdf' ? await genererDevisPdf(d, config, dossier) : await genererDevisDocx(d, config, dossier);
+    envoyerEtSupprimer(res, fichier, dossier);
   } catch (e) { res.status(500).json({ message: 'Erreur export: ' + e.message }); }
 });
 

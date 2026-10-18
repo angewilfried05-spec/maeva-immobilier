@@ -86,8 +86,8 @@ async function setup() {
     if (adminRows.length === 0) {
       const hash = await bcrypt.hash(ADMIN_DEFAULT.password, 10);
       await client.query(
-        `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif)
-         VALUES ($1, $2, $3, 'admin', TRUE)`,
+        `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif, doit_changer_mdp)
+         VALUES ($1, $2, $3, 'admin', TRUE, TRUE)`,
         [ADMIN_DEFAULT.username, hash, ADMIN_DEFAULT.nom_complet]
       );
       console.log('[auto-setup] Utilisateur admin créé');
@@ -101,8 +101,8 @@ async function setup() {
       if (rows.length === 0) {
         const hash = await bcrypt.hash(u.password, 10);
         await client.query(
-          `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif)
-           VALUES ($1, $2, $3, $4, TRUE)`,
+          `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif, doit_changer_mdp)
+           VALUES ($1, $2, $3, $4, TRUE, TRUE)`,
           [u.username, hash, u.nom_complet, u.role]
         );
         console.log(`[auto-setup] Utilisateur ${u.username} (${u.role}) créé`);

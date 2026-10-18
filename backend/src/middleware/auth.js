@@ -12,7 +12,8 @@ const EXPIRES_H = Number(process.env.JWT_EXPIRES_H) || 24;
 
 function signToken(utilisateur) {
   return jwt.sign(
-    { id: utilisateur.id, username: utilisateur.username, role: utilisateur.role, nom: utilisateur.nom_complet },
+    { id: utilisateur.id, username: utilisateur.username, role: utilisateur.role, nom: utilisateur.nom_complet,
+      mdp_a_changer: Boolean(utilisateur.doit_changer_mdp) },
     SECRET,
     { expiresIn: `${EXPIRES_H}h` }
   );
@@ -26,6 +27,10 @@ function requireAuth(req, res, next) {
   try {
     const payload = jwt.verify(token, SECRET);
     req.utilisateur = payload;
+    // Mot de passe par défaut / fixé par l'admin : seul le changement de mot de passe est autorisé
+    if (payload.mdp_a_changer && !req.originalUrl.startsWith('/api/auth/')) {
+      return res.status(403).json({ message: 'Vous devez changer votre mot de passe', code: 'MDP_A_CHANGER' });
+    }
     next();
   } catch {
     return res.status(401).json({ message: 'Session expirée ou invalide' });

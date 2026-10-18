@@ -43,9 +43,8 @@ export default function Devis({ setPage, setDevisId }) {
 
   const exporter = async (d, format) => {
     try {
-      const r = await api.post(`/api/devis/${d.id}/export`, { format });
-      setMessage(`${format.toUpperCase()} généré : ${r.chemin}`);
-      window.electron?.ouvrirDossier?.(r.chemin.replace(/[^\\/]+$/, ''));
+      const nom = await api.telecharger('POST', `/api/devis/${d.id}/export`, { format });
+      setMessage(`${format.toUpperCase()} téléchargé : ${nom}`);
     } catch (e) { alert(e.message); }
   };
 

@@ -13,8 +13,8 @@ const { nombreEnLettres } = require('./nombre-en-lettres');
 
 const NUM_FMT = (n) => Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-function dossierDevis() {
-  const dir = path.join(os.homedir(), 'Documents', 'MAEVA IMMOBILIER', 'devis');
+function dossierDevis(outDir) {
+  const dir = outDir || path.join(os.homedir(), 'Documents', 'MAEVA IMMOBILIER', 'devis');
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -36,7 +36,7 @@ function sousTotal(devis, categorie) {
 
 // ===================== DOCX =====================
 
-async function genererDevisDocx(devis, config) {
+async function genererDevisDocx(devis, config, outDir) {
   const logoPath = path.join(__dirname, '..', '..', '..', 'assets', 'logo.png');
   const nomSociete = (config.nom_societe || 'MAEVA  IMMOBILIER').replace(/\s+/g, '  ');
   const activite = config.activite || 'Gestion Location & vente de bâtiment, Construction';
@@ -209,7 +209,7 @@ async function genererDevisDocx(devis, config) {
   });
 
   const buffer = await Packer.toBuffer(doc);
-  const dir = dossierDevis();
+  const dir = dossierDevis(outDir);
   const fileName = `Devis_${devis.numero.replace(/\//g, '-')}_${(devis.client_nom || '').replace(/[^a-zA-Z0-9]/g, '')}.docx`;
   const outPath = path.join(dir, fileName);
   fs.writeFileSync(outPath, buffer);
@@ -218,12 +218,12 @@ async function genererDevisDocx(devis, config) {
 
 // ===================== PDF =====================
 
-async function genererDevisPdf(devis, config) {
+async function genererDevisPdf(devis, config, outDir) {
   const logoPath = path.join(__dirname, '..', '..', '..', 'assets', 'logo.png');
   const nomSociete = config.nom_societe || 'MAEVA  IMMOBILIER';
   const activite = config.activite || 'Gestion Location & vente de bâtiment, Construction';
 
-  const dir = dossierDevis();
+  const dir = dossierDevis(outDir);
   const fileName = `Devis_${devis.numero.replace(/\//g, '-')}_${(devis.client_nom || '').replace(/[^a-zA-Z0-9]/g, '')}.pdf`;
   const outPath = path.join(dir, fileName);
   const stream = fs.createWriteStream(outPath);

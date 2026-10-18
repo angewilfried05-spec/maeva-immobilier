@@ -15,7 +15,7 @@ import CatalogueArticles from './pages/CatalogueArticles.jsx';
 import Sauvegardes from './pages/Sauvegardes.jsx';
 import Connexion, { sessionSouvenirValide, effacerSouvenir } from './pages/Connexion.jsx';
 import { moisCourant } from './utils/format.js';
-import { api, getToken, setToken, AuthError } from './utils/api.js';
+import { api, getToken, setToken, AuthError, MODE } from './utils/api.js';
 import logo from './assets/logo.png';
 
 const PAGES = [
@@ -71,6 +71,9 @@ export default function App() {
   }
 
   if (!connecte) return <Connexion onConnecte={() => { setConnecte(true); }} />;
+  if (utilisateur?.doit_changer_mdp) {
+    return <div className="connexion-fond"><ChangerMotDePasse oblige onFermer={() => { chargerUtilisateur(); reload(); }} /></div>;
+  }
   if (!data) return <div className="contenu"><p style={{ padding: 40 }}>Chargement…</p></div>;
 
   const props = { data, reload, mois, setMois, setPage, utilisateur };
@@ -96,7 +99,7 @@ export default function App() {
             </div>
           )}
           <button onClick={() => setShowMdp(true)}>Changer le mot de passe</button>
-          <button onClick={() => window.electron?.ouvrirDossier?.()}>Ouvrir le dossier</button>
+          {MODE === 'local' && <button onClick={() => window.electron?.ouvrirDossier?.()}>Ouvrir le dossier</button>}
           <button onClick={deconnecter}>Se déconnecter</button>
         </div>
       </nav>

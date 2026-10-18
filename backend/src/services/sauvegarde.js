@@ -128,6 +128,8 @@ async function restaurer(contenu) {
     if (!Array.isArray(contenu.tables.versements) && tables.includes('versements')) {
       await require('../migrations/004_versements').convertir(client);
     }
+    // Comptes restaurés encore sur un mot de passe par défaut : changement obligatoire
+    await require('../migrations/005_mdp_a_changer').up(client);
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');

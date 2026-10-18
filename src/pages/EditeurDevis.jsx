@@ -108,8 +108,8 @@ export default function EditeurDevis({ devisId, setPage, data }) {
   const exporter = async (format) => {
     if (devisId) {
       try {
-        const r = await api.post(`/api/devis/${devisId}/export`, { format });
-        setMessage(`${format.toUpperCase()} généré : ${r.chemin}`);
+        const nom = await api.telecharger('POST', `/api/devis/${devisId}/export`, { format });
+        setMessage(`${format.toUpperCase()} téléchargé : ${nom}`);
       } catch (e) { setMessage(e.message); }
     } else {
       setMessage('Enregistrez le devis avant d\'exporter');

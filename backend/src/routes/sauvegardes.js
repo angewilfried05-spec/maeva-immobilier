@@ -18,6 +18,15 @@ router.get('/', (_req, res) => {
   catch (e) { res.status(500).json({ message: 'Erreur serveur: ' + e.message }); }
 });
 
+// GET /api/sauvegardes/:nom/telecharger  (copie hors du serveur : clé USB, autre PC…)
+router.get('/:nom/telecharger', (req, res) => {
+  const nom = String(req.params.nom || '');
+  if (!NOM_VALIDE.test(nom)) return res.status(400).json({ message: 'Nom de sauvegarde invalide' });
+  const fichier = path.join(dossierSauvegardes(), nom);
+  if (!fs.existsSync(fichier)) return res.status(404).json({ message: 'Sauvegarde introuvable' });
+  res.download(fichier, nom);
+});
+
 // POST /api/sauvegardes  (sauvegarde manuelle immédiate)
 router.post('/', async (_req, res) => {
   try { res.status(201).json(await creerSauvegarde('manuel')); }

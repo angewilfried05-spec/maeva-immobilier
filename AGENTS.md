@@ -14,6 +14,23 @@ cd backend && npm test # tests unitaires (node --test, backend/test/*.test.js)
 Sous le shell bash de l'IDE, faire `unset ELECTRON_RUN_AS_NODE` avant de lancer Electron.
 Le backend est chargé dans le process Electron : toute modification backend nécessite de relancer `npm run dev`.
 
+## Modes d'exécution
+
+- **local** : Electron lance le backend embarqué (`backend/.env`, PostgreSQL du PC).
+- **distant** : Electron se connecte à un serveur (`MAEVA_SERVEUR`, ou `config.json` `{ "serveur": "https://…" }`
+  dans le dossier userData ou dans `electron/`). Le backend local n'est pas chargé.
+- **web** : le backend sert aussi `dist/` (`SERVIR_FRONTEND=1`), accès par navigateur.
+- Les exports (Excel, Word, PDF) et les sauvegardes sont envoyés en téléchargement (`api.telecharger`), jamais écrits sur le disque du serveur.
+
+## Serveur (Hetzner 62.238.52.27, maeva-immobilier.com)
+
+- `bash deploy/deployer.sh` depuis le PC : déploie HEAD (le code doit être commité) dans `/opt/maeva/releases/<version>`,
+  puis `/opt/maeva/current` → systemd `maeva` (`backend/src/production.js`), derrière Nginx, HTTPS par certbot.
+- Premier déploiement ou `INSTALLER=1` : `deploy/installer-serveur.sh` (PostgreSQL, Node 22, Nginx, ufw, secrets).
+- Secrets dans `/etc/maeva/maeva.env` (root, droits 600), générés sur le serveur, jamais dans Git. Modèle : `deploy/maeva.env.exemple`.
+- Sauvegardes du serveur : `/var/lib/maeva/sauvegardes`. Restauration en ligne de commande : `node src/restaurer-cli.js <fichier.json>`.
+- Ne jamais importer `backend/src/production.js` pour « tester le chargement » : il applique les migrations à la base configurée.
+
 ## Base de données
 
 - Migrations dans `backend/src/migrations/` (`.sql` ou `.js` exportant `up(client)`), appliquées par `auto-setup.js`

@@ -10,7 +10,7 @@ export default function Historique() {
   useEffect(() => { reload(); }, []);
 
   const exporterExcel = async (mois) => {
-    try { const r = await api.post('/api/export/rapport', { mois }); setMessage(`Rapport Excel créé : ${r.chemin}`); }
+    try { const nom = await api.telecharger('POST', '/api/export/rapport', { mois }); setMessage(`Rapport Excel téléchargé : ${nom}`); }
     catch (e) { setMessage(e.message); }
   };
 

@@ -1,0 +1,24 @@
+[Unit]
+Description=MAEVA IMMOBILIER (API + application web)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=maeva
+Group=maeva
+WorkingDirectory=/opt/maeva/current/backend
+EnvironmentFile=/etc/maeva/maeva.env
+ExecStart=/usr/bin/node src/production.js
+Restart=always
+RestartSec=5
+
+# Durcissement
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/maeva
+
+[Install]
+WantedBy=multi-user.target

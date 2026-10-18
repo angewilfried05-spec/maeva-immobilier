@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { api } from '../utils/api.js';
+import { api, MODE } from '../utils/api.js';
 
 const TYPES = { auto: 'Automatique', manuel: 'Manuelle', 'avant-restauration': 'Avant restauration' };
 
@@ -24,6 +24,11 @@ export default function Sauvegardes({ onRestaure }) {
       reload();
     } catch (e) { setMessage({ type: 'erreur', txt: e.message }); }
     setEnCours(false);
+  };
+
+  const telecharger = async (s) => {
+    try { await api.telecharger('GET', `/api/sauvegardes/${encodeURIComponent(s.nom)}/telecharger`); }
+    catch (e) { setMessage({ type: 'erreur', txt: e.message }); }
   };
 
   const confirmer = (source) => window.confirm(
@@ -61,7 +66,7 @@ export default function Sauvegardes({ onRestaure }) {
     <div>
       <div className="barre">
         <h2 style={{ margin: 0, flex: 1 }}>Sauvegardes</h2>
-        <button className="btn gris" onClick={() => window.electron?.ouvrirDossier?.(etat.dossier)}>Ouvrir le dossier</button>
+        {MODE === 'local' && <button className="btn gris" onClick={() => window.electron?.ouvrirDossier?.(etat.dossier)}>Ouvrir le dossier</button>}
         <input ref={inputRef} type="file" accept=".json" onChange={restaurerFichier} style={{ display: 'none' }} />
         <button className="btn" onClick={() => inputRef.current?.click()} disabled={enCours}>Restaurer depuis un fichier…</button>
         <button className="btn vert" onClick={sauvegarder} disabled={enCours}>{enCours ? 'En cours…' : 'Sauvegarder maintenant'}</button>
@@ -69,9 +74,9 @@ export default function Sauvegardes({ onRestaure }) {
       {message && <div className={`message ${message.type}`}>{message.txt}</div>}
 
       <div style={{ marginBottom: 18, padding: 14, background: '#eef3fa', borderRadius: 10, fontSize: 14, color: '#44536a' }}>
-        Une sauvegarde automatique est faite chaque jour au démarrage de l'application (les 30 dernières sont conservées).
-        Pensez à copier régulièrement le dossier sur une clé USB ou un autre ordinateur.
-        <div style={{ marginTop: 6 }}><b>Dossier :</b> {etat.dossier}</div>
+        Une sauvegarde automatique est faite chaque jour (les 30 dernières sont conservées).
+        Pensez à en télécharger régulièrement une copie (bouton « Télécharger ») sur une clé USB ou un autre ordinateur.
+        {MODE === 'local' && <div style={{ marginTop: 6 }}><b>Dossier :</b> {etat.dossier}</div>}
       </div>
 
       {etat.sauvegardes.length === 0 ? (
@@ -86,7 +91,10 @@ export default function Sauvegardes({ onRestaure }) {
                 <td>{TYPES[s.type] || s.type}</td>
                 <td style={{ fontSize: 13, color: '#7a8899' }}>{s.nom}</td>
                 <td className="num">{taille(s.taille)}</td>
-                <td><button className="btn petit rouge" onClick={() => restaurer(s)} disabled={enCours}>Restaurer</button></td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <button className="btn petit" onClick={() => telecharger(s)}>Télécharger</button>{' '}
+                  <button className="btn petit rouge" onClick={() => restaurer(s)} disabled={enCours}>Restaurer</button>
+                </td>
               </tr>
             ))}
           </tbody>

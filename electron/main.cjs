@@ -1,12 +1,39 @@
 const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 const os = require('os');
-const { setup: autoSetup } = require('../backend/src/auto-setup');
-const { start: startBackend } = require('../backend/src/server');
+const fs = require('fs');
 
 let mainWindow;
 let splash;
 let backendServer;
+
+// Mode distant : l'app se connecte au serveur (données partagées) au lieu du backend local.
+// Adresse lue dans MAEVA_SERVEUR, sinon <userData>/config.json, sinon electron/config.json : { "serveur": "https://…" }.
+// En développement (npm run dev), backend local sauf si MAEVA_SERVEUR est défini.
+function adresseServeur() {
+  if (process.env.MAEVA_SERVEUR) return process.env.MAEVA_SERVEUR.replace(/\/+$/, '');
+  if (process.env.VITE_DEV_SERVER_URL) return '';
+  for (const f of [path.join(app.getPath('userData'), 'config.json'), path.join(__dirname, 'config.json')]) {
+    try { return String(JSON.parse(fs.readFileSync(f, 'utf8')).serveur || '').replace(/\/+$/, ''); } catch { /* absent */ }
+  }
+  return '';
+}
+
+const configRenderer = { API_URL: 'http://localhost:4001', MODE: 'local' };
+ipcMain.on('config:get', (e) => { e.returnValue = configRenderer; });
+
+function afficherErreur(titre, texte) {
+  if (!splash) return;
+  splash.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
+    <html><body style="margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#c0392b;color:#fff;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;border-radius:14px;padding:30px;text-align:center;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:12px;">${titre}</div>
+      <div style="font-size:14px;color:#fdecea;">${texte}</div>
+    </body></html>
+  `));
+}
+
+const echapper = (s) => String(s).replace(/</g, '&lt;');
 
 function creerSplash(texte) {
   splash = new BrowserWindow({
@@ -27,35 +54,48 @@ function fermerSplash() {
   if (splash) { splash.close(); splash = null; }
 }
 
-async function createWindow() {
-  creerSplash('Initialisation de la base de données…');
-
-  // 1. Setup automatique (crée la base + migrations + seed si besoin)
+async function demarrerLocal() {
+  // Chargé seulement en mode local : le backend exige backend/.env (JWT_SECRET, PostgreSQL)
+  const { setup: autoSetup } = require('../backend/src/auto-setup');
+  const { start: startBackend } = require('../backend/src/server');
   try {
+    // 1. Setup automatique (crée la base + migrations + seed si besoin)
     await autoSetup();
   } catch (e) {
-    if (splash) {
-      splash.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
-        <html><body style="margin:0;font-family:'Segoe UI',Arial,sans-serif;background:#c0392b;color:#fff;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;border-radius:14px;padding:30px;text-align:center;">
-          <div style="font-size:20px;font-weight:700;margin-bottom:12px;">Impossible de démarrer</div>
-          <div style="font-size:14px;color:#fdecea;">Vérifiez que PostgreSQL est installé et démarré sur ce PC.<br/><br/>${String(e.message).replace(/</g, '&lt;')}</div>
-        </body></html>
-      `));
-    }
-    return;
+    afficherErreur('Impossible de démarrer', `Vérifiez que PostgreSQL est installé et démarré sur ce PC.<br/><br/>${echapper(e.message)}`);
+    return false;
   }
-
-  // 2. Démarrer le backend Express embarqué
   try {
+    // 2. Démarrer le backend Express embarqué
     backendServer = await startBackend(4001);
   } catch (e) {
-    fermerSplash();
-    const errWin = new BrowserWindow({ width: 500, height: 300 });
-    errWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(
-      `<html><body style="font-family:Arial;padding:30px;"><h2>Erreur backend</h2><p>${String(e.message).replace(/</g,'&lt;')}</p></body></html>`
-    ));
-    return;
+    afficherErreur('Erreur backend', echapper(e.message));
+    return false;
+  }
+  return true;
+}
+
+async function verifierServeur(serveur) {
+  try {
+    const r = await fetch(`${serveur}/api/health`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`réponse ${r.status}`);
+    return true;
+  } catch (e) {
+    afficherErreur('Serveur injoignable',
+      `Impossible de joindre ${echapper(serveur)}.<br/>Vérifiez la connexion Internet puis relancez l'application.<br/><br/>${echapper(e.message)}`);
+    return false;
+  }
+}
+
+async function createWindow() {
+  const serveur = adresseServeur();
+  if (serveur) {
+    creerSplash('Connexion au serveur…');
+    if (!(await verifierServeur(serveur))) return;
+    Object.assign(configRenderer, { API_URL: serveur, MODE: 'distant' });
+  } else {
+    creerSplash('Initialisation de la base de données…');
+    if (!(await demarrerLocal())) return;
   }
 
   // 3. Créer la fenêtre principale

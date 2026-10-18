@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Modal from '../components/Modal.jsx';
-import { api } from '../utils/api.js';
+import { api, setToken } from '../utils/api.js';
 
-export default function ChangerMotDePasse({ onFermer }) {
+// oblige : premier accès avec un mot de passe par défaut / fixé par l'admin (pas d'annulation possible)
+export default function ChangerMotDePasse({ onFermer, oblige = false }) {
   const [ancien, setAncien] = useState('');
   const [nouveau, setNouveau] = useState('');
   const [confirmer, setConfirmer] = useState('');
@@ -15,10 +16,11 @@ export default function ChangerMotDePasse({ onFermer }) {
     if (nouveau !== confirmer) { setMessage({ type: 'erreur', txt: 'Les deux mots de passe ne correspondent pas.' }); return; }
     setEnCours(true);
     try {
-      await api.changePassword(ancien, nouveau);
+      const r = await api.changePassword(ancien, nouveau);
+      if (r?.token) setToken(r.token);
       setMessage({ type: 'succes', txt: 'Mot de passe modifié avec succès.' });
       setAncien(''); setNouveau(''); setConfirmer('');
-      setTimeout(onFermer, 1500);
+      setTimeout(onFermer, oblige ? 600 : 1500);
     } catch (e) {
       setMessage({ type: 'erreur', txt: e.message });
     }
@@ -26,9 +28,15 @@ export default function ChangerMotDePasse({ onFermer }) {
   };
 
   return (
-    <Modal titre="Changer le mot de passe" onFermer={onFermer}>
+    <Modal titre={oblige ? 'Choisissez votre mot de passe' : 'Changer le mot de passe'} onFermer={oblige ? () => {} : onFermer}>
+      {oblige && (
+        <div className="message erreur" style={{ fontWeight: 500 }}>
+          Votre compte utilise un mot de passe provisoire. Pour la sécurité de vos données,
+          choisissez un mot de passe personnel (8 caractères minimum) avant de continuer.
+        </div>
+      )}
       {message && <div className={`message ${message.type}`}>{message.txt}</div>}
-      <div className="champ"><label>Ancien mot de passe</label>
+      <div className="champ"><label>{oblige ? 'Mot de passe actuel (provisoire)' : 'Ancien mot de passe'}</label>
         <input type="password" autoFocus value={ancien} onChange={(e) => setAncien(e.target.value)} /></div>
       <div className="champ"><label>Nouveau mot de passe</label>
         <input type="password" value={nouveau} onChange={(e) => setNouveau(e.target.value)} /></div>
@@ -36,7 +44,7 @@ export default function ChangerMotDePasse({ onFermer }) {
         <input type="password" value={confirmer} onChange={(e) => setConfirmer(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') valider(); }} /></div>
       <div className="actions">
-        <button className="btn gris" onClick={onFermer}>Annuler</button>
+        {!oblige && <button className="btn gris" onClick={onFermer}>Annuler</button>}
         <button className="btn vert" onClick={valider} disabled={enCours || !ancien || !nouveau || !confirmer}>
           {enCours ? 'Enregistrement…' : 'Changer'}
         </button>

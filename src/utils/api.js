@@ -1,11 +1,17 @@
 // Client API : fetch + JWT stocké en localStorage.
-const API_URL = (typeof window !== 'undefined' && window.env?.API_URL) || 'http://localhost:4001';
+// - Electron : URL fournie par le preload (backend local embarqué ou serveur distant)
+// - Navigateur (app servie par le serveur) : même origine
+// - Développement Vite : backend local
+const API_URL = (typeof window !== 'undefined' && window.env?.API_URL)
+  || (import.meta.env.DEV ? 'http://localhost:4001' : '');
+// 'local' : Electron + backend sur ce PC ; 'distant' : Electron + serveur ; 'web' : navigateur
+export const MODE = (typeof window !== 'undefined' && window.env?.MODE) || 'web';
 const TOKEN_KEY = 'maeva_jwt';
 
 export function getToken() { return localStorage.getItem(TOKEN_KEY); }
 export function setToken(t) { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); }
 
-async function request(method, url, { body, formData, isJson = true } = {}) {
+async function envoyer(method, url, { body, formData } = {}) {
   const headers = {};
   const opts = { method, headers };
   const token = getToken();
@@ -21,16 +27,41 @@ async function request(method, url, { body, formData, isJson = true } = {}) {
     setToken(null);
     throw new AuthError('Session expirée');
   }
+  return res;
+}
+
+async function erreurDe(res) {
   const txt = await res.text();
-  const data = txt ? (isJson ? JSON.parse(txt) : txt) : null;
-  if (!res.ok) {
-    const msg = (data && data.message) || `Erreur ${res.status}`;
-    const err = new Error(msg);
-    err.status = res.status;
-    err.data = data;
-    throw err;
-  }
-  return data;
+  let data = null;
+  try { data = txt ? JSON.parse(txt) : null; } catch { /* réponse non JSON */ }
+  const err = new Error((data && data.message) || `Erreur ${res.status}`);
+  err.status = res.status;
+  err.data = data;
+  return err;
+}
+
+async function request(method, url, options) {
+  const res = await envoyer(method, url, options);
+  if (!res.ok) throw await erreurDe(res);
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+// Télécharge un fichier renvoyé par l'API (exports, sauvegardes) et le propose à l'enregistrement
+async function telecharger(method, url, body) {
+  const res = await envoyer(method, url, { body });
+  if (!res.ok) throw await erreurDe(res);
+  const cd = res.headers.get('Content-Disposition') || '';
+  const m = cd.match(/filename\*=UTF-8''([^;]+)/i) || cd.match(/filename="?([^";]+)"?/i);
+  const nom = m ? decodeURIComponent(m[1]) : 'fichier';
+  const lien = document.createElement('a');
+  lien.href = URL.createObjectURL(await res.blob());
+  lien.download = nom;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  setTimeout(() => URL.revokeObjectURL(lien.href), 10000);
+  return nom;
 }
 
 export class AuthError extends Error {}
@@ -41,6 +72,7 @@ export const api = {
   put: (u, b) => request('PUT', u, { body: b }),
   del: (u) => request('DELETE', u),
   upload: (u, formData) => request('POST', u, { formData }),
+  telecharger,
   login: (username, password) => request('POST', '/api/auth/login', { body: { username, password } }),
   me: () => request('GET', '/api/auth/me'),
   changePassword: (ancien, nouveau) => request('POST', '/api/auth/change-password', { body: { ancien, nouveau } }),

@@ -25,8 +25,8 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const hash = await bcrypt.hash(String(password), 10);
     const { rows } = await pool.query(
-      `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif)
-       VALUES ($1, $2, $3, $4, TRUE) RETURNING id, username, nom_complet, role, actif`,
+      `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif, doit_changer_mdp)
+       VALUES ($1, $2, $3, $4, TRUE, TRUE) RETURNING id, username, nom_complet, role, actif`,
       [String(username).trim(), hash, String(nom_complet).trim(), role]
     );
     res.status(201).json(rows[0]);
@@ -45,7 +45,8 @@ router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
     if (password) {
       if (String(password).length < 8) return res.status(400).json({ message: 'Le mot de passe doit faire au moins 8 caractères' });
       const hash = await bcrypt.hash(String(password), 10);
-      await pool.query('UPDATE utilisateurs SET password_hash = $1 WHERE id = $2', [hash, id]);
+      // Mot de passe fixé par l'admin : l'utilisateur devra le changer à sa prochaine connexion
+      await pool.query('UPDATE utilisateurs SET password_hash = $1, doit_changer_mdp = TRUE WHERE id = $2', [hash, id]);
     }
     const { rows } = await pool.query(
       `UPDATE utilisateurs

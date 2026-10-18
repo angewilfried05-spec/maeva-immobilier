@@ -19,10 +19,15 @@ const sauvegardesRoutes = require('./routes/sauvegardes');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 
 const app = express();
+app.disable('x-powered-by');
 
-// CORS restreint : le front est servi par Electron (file:// -> aucune origine)
-// ou par le serveur Vite en dev. Tout le reste est refusé.
-const ORIGINS_AUTORISEES = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+// Derrière Nginx (serveur) : l'IP réelle du client vient de X-Forwarded-For (anti-bruteforce du login)
+if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY);
+
+// CORS restreint : Electron (file:// -> origine 'null' ou absente), Vite en dev,
+// et les origines listées dans CORS_ORIGINES (ex: https://maeva-immobilier.com). Tout le reste est refusé.
+const ORIGINS_AUTORISEES = ['http://localhost:5173', 'http://127.0.0.1:5173',
+  ...String(process.env.CORS_ORIGINES || '').split(',').map((o) => o.trim()).filter(Boolean)];
 app.use(cors({
   origin(origin, callback) {
     if (!origin || origin === 'null' || ORIGINS_AUTORISEES.includes(origin)) {
@@ -30,6 +35,7 @@ app.use(cors({
     }
     return callback(null, false);
   },
+  exposedHeaders: ['Content-Disposition'], // nom des fichiers téléchargés (Electron -> serveur distant)
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -49,6 +55,14 @@ app.use('/api/export', exportRoutes);
 app.use('/api/devis', devisRoutes);
 app.use('/api/catalogue', catalogueRoutes);
 app.use('/api/sauvegardes', sauvegardesRoutes);
+app.use('/api', (_req, res) => res.status(404).json({ message: 'Route inconnue' }));
+
+// Mode serveur web : le backend sert aussi le frontend compilé (dist/)
+if (process.env.SERVIR_FRONTEND === '1') {
+  const dist = path.join(__dirname, '..', '..', 'dist');
+  app.use(express.static(dist, { index: false, maxAge: '7d' }));
+  app.get('*', (_req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(dist, 'index.html')));
+}
 
 // Gestion d'erreurs
 app.use((err, _req, res, _next) => {
@@ -58,10 +72,10 @@ app.use((err, _req, res, _next) => {
 
 // Démarrage : si lancé directement (node server.js), écoute sur PORT.
 // Si requis par Electron, exporte start() qui renvoie une Promise.
-function start(port) {
+function start(port, host) {
   return new Promise((resolve) => {
-    const server = app.listen(port || process.env.PORT || 4001, () => {
-      console.log(`✅ Backend MAEVA IMMOBILIER sur le port ${server.address().port}`);
+    const server = app.listen(port || process.env.PORT || 4001, host || process.env.HOST || '127.0.0.1', () => {
+      console.log(`✅ Backend MAEVA IMMOBILIER sur ${server.address().address}:${server.address().port}`);
       demarrerSauvegardeAuto();
       resolve(server);
     });
