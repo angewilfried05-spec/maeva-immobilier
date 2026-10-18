@@ -98,7 +98,7 @@ export default function EditeurDevis({ devisId, setPage, data }) {
         lignes: devis.lignes.filter((l) => l.designation.trim()),
       };
       if (devisId) await api.put(`/api/devis/${devisId}`, body);
-      else { const r = await api.post('/api/devis', body); setPage('editeur-devis'); }
+      else { const r = await api.post('/api/devis', body); setPage(`/devis/${r.id}`); }
       setMessage('Devis enregistré');
       setTimeout(() => setPage('devis'), 800);
     } catch (e) { setMessage(e.message); }

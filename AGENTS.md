@@ -75,3 +75,12 @@ Le backend est chargé dans le process Electron : toute modification backend né
   sensibles ; lecture `GET /api/v1/audit` réservée à l'admin.
 - `jetons_refresh` est exclu des sauvegardes : une restauration révoque toutes les sessions.
 - Frontend `api.js` : `setSession(res)` stocke la paire, refresh transparent sur 401, `deconnecter()`.
+
+## Frontend (Phase 3)
+
+- **React Router (HashRouter)** : vraies URLs `#/locataires`, `#/devis/123`… compatibles file://
+  (Electron `loadFile`), Vite dev et serveur web. Le prop historique `setPage(id)` des pages
+  est traduit en navigation (`setPage('loyers')` → `#/loyers`, `setPage('/devis/5')` → direct).
+- **React Query** : les données du mois sont une seule requête `['dashboard', mois]` partagée
+  (cache 15 s) ; le prop `reload()` des pages invalide la requête. `qc.clear()` à la déconnexion.
+- Pages dans `src/pages/`, composants réutilisables dans `src/components/`, helpers dans `src/utils/`.

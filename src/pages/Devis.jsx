@@ -7,7 +7,7 @@ const STATUT_COULEUR = {
   Brouillon: 'vide', Envoyé: 'avance', Accepté: 'ok', Refusé: 'retard', Facturé: 'ok',
 };
 
-export default function Devis({ setPage, setDevisId }) {
+export default function Devis({ setPage }) {
   const [liste, setListe] = useState(null);
   const [filtreStatut, setFiltreStatut] = useState('');
   const [recherche, setRecherche] = useState('');
@@ -60,7 +60,7 @@ export default function Devis({ setPage, setDevisId }) {
           <option value="">Tous statuts</option>
           {STATUTS.map((s) => <option key={s}>{s}</option>)}
         </select>
-        <button className="btn vert" onClick={() => { setDevisId(null); setPage('editeur-devis'); }}>+ Nouveau devis</button>
+        <button className="btn vert" onClick={() => setPage('/devis/nouveau')}>+ Nouveau devis</button>
       </div>
       {message && <div className="message succes">{message}</div>}
 
@@ -89,7 +89,7 @@ export default function Devis({ setPage, setDevisId }) {
                   </select>
                 </td>
                 <td style={{ whiteSpace: 'nowrap' }}>
-                  <button className="btn petit" onClick={() => { setDevisId(d.id); setPage('editeur-devis'); }}>Ouvrir</button>{' '}
+                  <button className="btn petit" onClick={() => setPage(`/devis/${d.id}`)}>Ouvrir</button>{' '}
                   <button className="btn petit" onClick={() => exporter(d, 'docx')} title="Exporter Word">W</button>{' '}
                   <button className="btn petit" onClick={() => exporter(d, 'pdf')} title="Exporter PDF">P</button>{' '}
                   <button className="btn petit" onClick={() => dupliquer(d)} title="Dupliquer">⎘</button>{' '}

@@ -31,14 +31,14 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--gris); colo
   display: flex; flex-direction: column; gap: 4px;
   padding-right: 2px;
 }
-.sidebar button {
+.sidebar button, .sidebar-scroll a {
   display: block; width: 100%; text-align: left; padding: 10px 12px;
   background: transparent; color: #fff; border: none; border-radius: 8px;
   font-size: 14px; cursor: pointer; font-weight: 600;
-  flex-shrink: 0;
+  flex-shrink: 0; text-decoration: none;
 }
-.sidebar button:hover { background: rgba(255,255,255,.12); }
-.sidebar button.actif { background: var(--bleu); color: #fff; }
+.sidebar button:hover, .sidebar-scroll a:hover { background: rgba(255,255,255,.12); }
+.sidebar button.actif, .sidebar-scroll a.actif { background: var(--bleu); color: #fff; }
 
 .sidebar-bas {
   flex-shrink: 0;

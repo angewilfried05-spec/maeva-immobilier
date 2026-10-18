@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Routes, Route, NavLink, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Dashboard from './pages/Dashboard.jsx';
 import Encaisser from './pages/Encaisser.jsx';
 import SaisieLoyers from './pages/SaisieLoyers.jsx';
@@ -20,8 +22,10 @@ import { moisCourant } from './utils/format.js';
 import { api, getToken, deconnecter as deconnecterApi, AuthError, MODE } from './utils/api.js';
 import logo from './assets/logo.png';
 
+// id → chemin. Les pages existantes gardent le prop setPage(id) : il est
+// traduit en navigation vers le chemin correspondant.
 const PAGES = [
-  ['dashboard', 'Tableau de bord'],
+  ['tableau-de-bord', 'Tableau de bord'],
   ['encaisser', 'Encaisser'],
   ['loyers', 'Saisie des loyers'],
   ['relances', 'Relances'],
@@ -36,52 +40,67 @@ const PAGES = [
 ];
 
 export default function App() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
   const [connecte, setConnecte] = useState(() => Boolean(getToken()) && sessionSouvenirValide());
   const [utilisateur, setUtilisateur] = useState(null);
-  const [page, setPage] = useState('dashboard');
-  const [data, setData] = useState(null);
   const [mois, setMois] = useState(moisCourant());
   const [showMdp, setShowMdp] = useState(false);
-  const [devisId, setDevisId] = useState(null);
+
+  // Données du mois : une seule requête partagée par toutes les pages, en cache.
+  const { data, error } = useQuery({
+    queryKey: ['dashboard', mois],
+    queryFn: () => api.get(`/api/dashboard?mois=${mois}`),
+    enabled: connecte && Boolean(utilisateur) && !utilisateur?.doit_changer_mdp,
+    retry: (n, e) => !(e instanceof AuthError) && n < 2,
+    staleTime: 15000,
+  });
 
   const chargerUtilisateur = useCallback(async () => {
     try { setUtilisateur(await api.me()); }
     catch (e) { if (e instanceof AuthError) deconnecter(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const reload = useCallback(async () => {
-    try {
-      const d = await api.get(`/api/dashboard?mois=${mois}`);
-      setData(d);
-    } catch (e) {
-      if (e instanceof AuthError) deconnecter();
-      else console.error('reload:', e.message);
-    }
-  }, [mois]);
-
   useEffect(() => {
-    if (connecte && getToken()) { chargerUtilisateur(); }
+    if (connecte && getToken()) chargerUtilisateur();
   }, [connecte, chargerUtilisateur]);
 
-  useEffect(() => { if (connecte) reload(); }, [reload, connecte]);
+  useEffect(() => {
+    if (error instanceof AuthError) deconnecter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
+
+  // Compatibilité : les pages appellent reload() pour rafraîchir après écriture.
+  const reload = useCallback(
+    () => qc.invalidateQueries({ queryKey: ['dashboard'] }),
+    [qc]
+  );
+  // Compatibilité : setPage(id) naviguait dans l'état local, désormais vers l'URL.
+  const setPage = useCallback((id) => navigate(id.startsWith('/') ? id : `/${id}`), [navigate]);
 
   function deconnecter() {
-    deconnecterApi(); // révoque la session serveur + efface les jetons (asynchrone, sans bloquer)
+    deconnecterApi();
     effacerSouvenir();
+    qc.clear();
     setConnecte(false);
-    setPage('dashboard');
     setUtilisateur(null);
-    setData(null);
+    navigate('/tableau-de-bord');
   }
 
-  if (!connecte) return <Connexion onConnecte={() => { setConnecte(true); }} />;
+  if (!connecte) return <Connexion onConnecte={() => setConnecte(true)} />;
   if (utilisateur?.doit_changer_mdp) {
-    return <div className="connexion-fond"><ChangerMotDePasse oblige onFermer={() => { chargerUtilisateur(); reload(); }} /></div>;
+    return (
+      <div className="connexion-fond">
+        <ChangerMotDePasse oblige onFermer={() => { chargerUtilisateur(); reload(); }} />
+      </div>
+    );
   }
-  if (!data) return <div className="contenu"><p style={{ padding: 40 }}>Chargement…</p></div>;
+  if (error) return <div className="contenu"><p style={{ padding: 40 }}>Erreur : {error.message} <button className="btn petit" onClick={reload}>Réessayer</button></p></div>;
+  if (!utilisateur || !data) return <div className="contenu"><p style={{ padding: 40 }}>Chargement…</p></div>;
 
   const props = { data, reload, mois, setMois, setPage, utilisateur };
-  const estAdmin = utilisateur?.role === 'admin';
+  const estAdmin = utilisateur.role === 'admin';
   const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs'], ['sauvegardes', 'Sauvegardes']] : PAGES;
 
   return (
@@ -90,41 +109,51 @@ export default function App() {
         <div className="logo-boite"><img src={logo} alt="MAEVA IMMOBILIER" /></div>
         <div className="sidebar-scroll">
           {pagesAffichees.map(([id, label]) => (
-            <button key={id} className={page === id ? 'actif' : ''} onClick={() => setPage(id)}>
+            <NavLink key={id} to={`/${id}`} className={({ isActive }) => (isActive ? 'actif' : '')}>
               {label}
-            </button>
+            </NavLink>
           ))}
         </div>
         <div className="sidebar-bas">
-          {utilisateur && (
-            <div className="sidebar-profil">
-              <span className="nom">{utilisateur.nom_complet}</span>
-              <span className="role">{utilisateur.role}</span>
-            </div>
-          )}
+          <div className="sidebar-profil">
+            <span className="nom">{utilisateur.nom_complet}</span>
+            <span className="role">{utilisateur.role}</span>
+          </div>
           <button onClick={() => setShowMdp(true)}>Changer le mot de passe</button>
           {MODE === 'local' && <button onClick={() => window.electron?.ouvrirDossier?.()}>Ouvrir le dossier</button>}
           <button onClick={deconnecter}>Se déconnecter</button>
         </div>
       </nav>
       <main className="contenu">
-        {page === 'dashboard' && <Dashboard {...props} />}
-        {page === 'encaisser' && <Encaisser {...props} />}
-        {page === 'loyers' && <SaisieLoyers {...props} />}
-        {page === 'relances' && <Relances {...props} />}
-        {page === 'locataires' && <Locataires {...props} />}
-        {page === 'batiments' && <Batiments {...props} />}
-        {page === 'depenses' && <Depenses {...props} />}
-        {page === 'historique' && <Historique {...props} />}
-        {page === 'recherche' && <Recherche {...props} />}
-        {page === 'import' && <ImportExcel {...props} />}
-        {page === 'devis' && <Devis {...props} devisId={devisId} setDevisId={setDevisId} />}
-        {page === 'editeur-devis' && <EditeurDevis {...props} devisId={devisId} setDevisId={setDevisId} />}
-        {page === 'catalogue' && <CatalogueArticles {...props} />}
-        {page === 'utilisateurs' && estAdmin && <Utilisateurs {...props} />}
-        {page === 'sauvegardes' && estAdmin && <Sauvegardes {...props} onRestaure={deconnecter} />}
+        <Routes>
+          <Route path="/" element={<Navigate to="/tableau-de-bord" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/tableau-de-bord" replace />} />
+          <Route path="/tableau-de-bord" element={<Dashboard {...props} />} />
+          <Route path="/encaisser" element={<Encaisser {...props} />} />
+          <Route path="/loyers" element={<SaisieLoyers {...props} />} />
+          <Route path="/relances" element={<Relances {...props} />} />
+          <Route path="/locataires" element={<Locataires {...props} />} />
+          <Route path="/batiments" element={<Batiments {...props} />} />
+          <Route path="/depenses" element={<Depenses {...props} />} />
+          <Route path="/historique" element={<Historique {...props} />} />
+          <Route path="/recherche" element={<Recherche {...props} />} />
+          <Route path="/import" element={<ImportExcel {...props} />} />
+          <Route path="/devis" element={<Devis {...props} />} />
+          <Route path="/devis/nouveau" element={<EditeurDevis {...props} devisId={null} />} />
+          <Route path="/devis/:devisId" element={<EditeurDevisRoute {...props} />} />
+          <Route path="/catalogue" element={<CatalogueArticles {...props} />} />
+          {estAdmin && <Route path="/utilisateurs" element={<Utilisateurs {...props} />} />}
+          {estAdmin && <Route path="/sauvegardes" element={<Sauvegardes {...props} onRestaure={deconnecter} />} />}
+          <Route path="*" element={<Navigate to="/tableau-de-bord" replace />} />
+        </Routes>
       </main>
       {showMdp && <ChangerMotDePasse onFermer={() => setShowMdp(false)} />}
     </>
   );
+}
+
+// Lit l'identifiant du devis dans l'URL (/devis/123)
+function EditeurDevisRoute(props) {
+  const { devisId } = useParams();
+  return <EditeurDevis {...props} devisId={devisId ? Number(devisId) : null} />;
 }
