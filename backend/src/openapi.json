@@ -1111,6 +1111,62 @@
         ]
       }
     },
+    "/relances/{locataireId}/envoyer": {
+      "post": {
+        "summary": "Envoie la relance via le client WhatsApp du serveur (503 si non connecte)",
+        "tags": [
+          "relances"
+        ]
+      }
+    },
+    "/versements/{id}/quittance/whatsapp": {
+      "post": {
+        "summary": "Envoie la quittance PDF au locataire via WhatsApp (admin/gerant/comptable)",
+        "tags": [
+          "versements"
+        ]
+      }
+    },
+    "/whatsapp/status": {
+      "get": {
+        "summary": "Etat du client WhatsApp du serveur (admin) : CONNECTED/QRCODE/DISCONNECTED/SIMULATION",
+        "tags": [
+          "whatsapp"
+        ]
+      }
+    },
+    "/whatsapp/qr": {
+      "post": {
+        "summary": "Demarre le client et renvoie le QR a scanner (admin)",
+        "tags": [
+          "whatsapp"
+        ]
+      }
+    },
+    "/whatsapp/relink": {
+      "post": {
+        "summary": "Reinitialise la session WhatsApp et regenere un QR (admin)",
+        "tags": [
+          "whatsapp"
+        ]
+      }
+    },
+    "/whatsapp/logout": {
+      "post": {
+        "summary": "Deconnecte le client WhatsApp et efface la session (admin)",
+        "tags": [
+          "whatsapp"
+        ]
+      }
+    },
+    "/whatsapp/test-send": {
+      "post": {
+        "summary": "Envoi de test { telephone, message } (admin)",
+        "tags": [
+          "whatsapp"
+        ]
+      }
+    },
     "/resumes/{mois}/cloturer": {
       "post": {
         "summary": "Figer un mois (admin, gerant) — recalcule une derniere fois puis bloque toute ecriture",

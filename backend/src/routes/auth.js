@@ -8,7 +8,7 @@ const { MOTS_DE_PASSE_PAR_DEFAUT } = require('../migrations/005_mdp_a_changer');
 
 const router = express.Router();
 const LOGIN_MAX_ATTEMPTS = 5;
-const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+const LOGIN_BLOCK_MS = 5 * 60 * 1000;
 const tentatives = new Map();
 
 function cleTentative(req, username) {
@@ -24,7 +24,12 @@ router.post('/login', async (req, res) => {
   const cle = cleTentative(req, username);
   const etat = tentatives.get(cle);
   if (etat && etat.blocqueJusque > Date.now()) {
-    return res.status(429).json({ message: 'Trop de tentatives. Réessayez plus tard.' });
+    const reste = Math.ceil((etat.blocqueJusque - Date.now()) / 1000);
+    res.set('Retry-After', String(reste));
+    return res.status(429).json({
+      message: `Trop de tentatives. Réessayez dans ${Math.ceil(reste / 60)} min.`,
+      retry_after: reste,
+    });
   }
 
   try {

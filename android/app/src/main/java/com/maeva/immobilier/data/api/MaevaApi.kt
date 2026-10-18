@@ -86,6 +86,9 @@ interface MaevaApi {
     @GET("api/relances")
     suspend fun relances(@Query("mois") mois: String): RelancesReponse
 
+    @POST("api/relances/{id}/envoyer")
+    suspend fun envoyerRelance(@retrofit2.http.Path("id") locataireId: Int, @Body body: Map<String, String>): Response<Unit>
+
     @GET("api/unites")
     suspend fun unites(): List<Unite>
 

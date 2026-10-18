@@ -13,6 +13,34 @@ const { envoyerEtSupprimer } = require('../utils/envoi-fichier');
 const router = express.Router();
 const SAISIE = requireRole('admin', 'gerant', 'comptable');
 
+// Charge le versement + sa quittance et génère le PDF dans un dossier temporaire.
+async function genererFichierQuittance(id) {
+  const { rows } = await pool.query(
+    `SELECT v.*, q.numero, q.emis_le, l.telephone,
+            l.nom_locataire, l.numero_porte, b.nom AS nom_batiment, u.nom_complet AS emetteur
+     FROM versements v
+     JOIN quittances q ON q.versement_id = v.id
+     JOIN locataires l ON l.id = v.locataire_id
+     JOIN batiments b ON b.id = l.batiment_id
+     LEFT JOIN utilisateurs u ON u.id = q.emis_par
+     WHERE v.id = $1`, [id]
+  );
+  const r = rows[0];
+  if (!r) return null;
+  const { rows: cfg } = await pool.query('SELECT cle, valeur FROM config');
+  const config = Object.fromEntries(cfg.map((c) => [c.cle, c.valeur]));
+  const dossier = dossierTemporaire();
+  const fichier = path.join(dossier, `quittance_${r.numero}.pdf`);
+  await genererQuittancePdf({
+    quittance: { numero: r.numero, emis_le: r.emis_le },
+    versement: r,
+    locataire: { nom_locataire: r.nom_locataire, numero_porte: r.numero_porte },
+    batiment: { nom_batiment: r.nom_batiment },
+    config, emetteur: r.emetteur,
+  }, fichier);
+  return { r, fichier, dossier };
+}
+
 // GET /api/versements?mois=&locataire_id=
 router.get('/', requireAuth, async (req, res) => {
   const { mois, locataire_id } = req.query;
@@ -35,31 +63,38 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:id/quittance', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   try {
-    const { rows } = await pool.query(
-      `SELECT v.*, q.numero, q.emis_le,
-              l.nom_locataire, l.numero_porte, b.nom AS nom_batiment, u.nom_complet AS emetteur
-       FROM versements v
-       JOIN quittances q ON q.versement_id = v.id
-       JOIN locataires l ON l.id = v.locataire_id
-       JOIN batiments b ON b.id = l.batiment_id
-       LEFT JOIN utilisateurs u ON u.id = q.emis_par
-       WHERE v.id = $1`, [id]
-    );
-    const r = rows[0];
-    if (!r) return res.status(404).json({ message: 'Versement ou quittance introuvable' });
-    const { rows: cfg } = await pool.query('SELECT cle, valeur FROM config');
-    const config = Object.fromEntries(cfg.map((c) => [c.cle, c.valeur]));
-    const dossier = dossierTemporaire();
-    const fichier = path.join(dossier, `quittance_${r.numero}.pdf`);
-    await genererQuittancePdf({
-      quittance: { numero: r.numero, emis_le: r.emis_le },
-      versement: r,
-      locataire: { nom_locataire: r.nom_locataire, numero_porte: r.numero_porte },
-      batiment: { nom_batiment: r.nom_batiment },
-      config, emetteur: r.emetteur,
-    }, fichier);
-    envoyerEtSupprimer(res, fichier, dossier);
+    const gen = await genererFichierQuittance(id);
+    if (!gen) return res.status(404).json({ message: 'Versement ou quittance introuvable' });
+    envoyerEtSupprimer(res, gen.fichier, gen.dossier);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur: ' + e.message }); }
+});
+
+// POST /api/versements/:id/quittance/whatsapp  → envoie le PDF au locataire via
+// le client WhatsApp du serveur (503 si non connecté — le lien wa.me reste possible).
+router.post('/:id/quittance/whatsapp', requireAuth, SAISIE, async (req, res) => {
+  const id = Number(req.params.id);
+  const fs = require('fs/promises');
+  let dossier = null;
+  try {
+    const gen = await genererFichierQuittance(id);
+    if (!gen) return res.status(404).json({ message: 'Versement ou quittance introuvable' });
+    dossier = gen.dossier;
+    if (!gen.r.telephone) {
+      await fs.rm(dossier, { recursive: true, force: true });
+      return res.status(400).json({ message: 'Ce locataire n\'a pas de numéro de téléphone' });
+    }
+    const wa = require('../services/whatsapp');
+    const legende = `Quittance ${gen.r.numero} — loyer ${gen.r.mois}`;
+    const r = await wa.envoyerDocument(gen.r.telephone, gen.fichier, legende);
+    await fs.rm(dossier, { recursive: true, force: true });
+    if (!r.success) return res.status(503).json({ message: r.error || 'WhatsApp non connecté' });
+    await journal(null, req, 'quittance.whatsapp', 'versement', id,
+      { quittance: gen.r.numero, simulated: !!r.simulated });
+    res.json({ ok: true, simulated: !!r.simulated });
+  } catch (e) {
+    if (dossier) await fs.rm(dossier, { recursive: true, force: true }).catch(() => {});
+    res.status(500).json({ message: 'Erreur serveur: ' + e.message });
+  }
 });
 
 // POST /api/versements  { locataire_id, mois, montant, date_versement?, mode?, note?, cle_idempotence? }

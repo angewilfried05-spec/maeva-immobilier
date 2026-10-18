@@ -8,10 +8,22 @@ export default function Relances() {
   const [mois, setMois] = useState(moisCourant());
   const [data, setData] = useState(null);
   const [erreur, setErreur] = useState(null);
+  const [info, setInfo] = useState(null);
+  const [envoi, setEnvoi] = useState(null);
 
   useEffect(() => {
     api.get(`/api/relances?mois=${mois}`).then(setData).catch((e) => setErreur(e.message));
   }, [mois]);
+
+  async function envoyer(r) {
+    setEnvoi(r.locataire_id); setErreur(null); setInfo(null);
+    try {
+      await api.post(`/api/relances/${r.locataire_id}/envoyer`, { mois });
+      setInfo(`Relance envoyée à ${r.nom_locataire} via WhatsApp.`);
+    } catch (e) {
+      setErreur(e.message);
+    } finally { setEnvoi(null); }
+  }
 
   return (
     <div>
@@ -20,6 +32,7 @@ export default function Relances() {
         <SelecteurMois mois={mois} onChange={setMois} />
       </div>
       {erreur && <div className="message erreur">{erreur}</div>}
+      {info && <div className="message succes">{info}</div>}
       {!data ? <p>Chargement…</p> : data.relances.length === 0 ? (
         <div className="vide-note">Aucun locataire en dette sur {moisLabel(mois)}.</div>
       ) : (
@@ -44,7 +57,14 @@ export default function Relances() {
                   <td className="num">{fmtNombre(r.dette_mois)} mois</td>
                   <td>
                     {r.whatsapp
-                      ? <a className="btn petit vert" target="_blank" rel="noreferrer" href={r.whatsapp}>WhatsApp</a>
+                      ? <>
+                          <a className="btn petit vert" target="_blank" rel="noreferrer" href={r.whatsapp}>WhatsApp</a>
+                          {' '}
+                          <button className="btn petit" disabled={envoi !== null}
+                            onClick={() => envoyer(r)}>
+                            {envoi === r.locataire_id ? 'Envoi…' : 'Envoyer'}
+                          </button>
+                        </>
                       : <span style={{ color: '#7a8899' }}>pas de n°</span>}
                   </td>
                 </tr>

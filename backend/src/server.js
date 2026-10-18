@@ -19,6 +19,8 @@ const sauvegardesRoutes = require('./routes/sauvegardes');
 const auditRoutes = require('./routes/audit');
 const unitesRoutes = require('./routes/unites');
 const relancesRoutes = require('./routes/relances');
+const whatsappRoutes = require('./routes/whatsapp');
+const { demarrerSiConfigure } = require('./services/whatsapp');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 
 const app = express();
@@ -71,6 +73,7 @@ const ROUTES = [
   ['/devis', devisRoutes],
   ['/catalogue', catalogueRoutes],
   ['/sauvegardes', sauvegardesRoutes],
+  ['/whatsapp', whatsappRoutes],
 ];
 for (const [chemin, r] of ROUTES) {
   app.use('/api' + chemin, r);
@@ -98,6 +101,7 @@ function start(port, host) {
     const server = app.listen(port || process.env.PORT || 4001, host || process.env.HOST || '127.0.0.1', () => {
       console.log(`✅ Backend MAEVA IMMOBILIER sur ${server.address().address}:${server.address().port}`);
       demarrerSauvegardeAuto();
+      demarrerSiConfigure();
       resolve(server);
     });
   });

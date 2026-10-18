@@ -6,3 +6,6 @@ release/
 # Secrets et config locale
 backend/.env
 .env
+# Session WhatsApp Web locale (qr / compte lié)
+backend/.wwebjs_auth/
+backend/.wwebjs_cache/
