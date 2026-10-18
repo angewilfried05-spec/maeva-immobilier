@@ -87,7 +87,7 @@ export default function Encaisser({ data, reload, mois, setMois }) {
       {erreur && <div className="message erreur">{erreur}</div>}
 
       {resultat ? (
-        <div className="carte" style={{ maxWidth: 520 }}>
+        <div className="panneau" style={{ maxWidth: 560 }}>
           <div className="message succes">
             Versement enregistré — quittance <b>{resultat.numero_quittance}</b>
           </div>
@@ -108,7 +108,7 @@ export default function Encaisser({ data, reload, mois, setMois }) {
           </div>
         </div>
       ) : (
-        <div className="carte" style={{ maxWidth: 520 }}>
+        <div className="panneau" style={{ maxWidth: 560 }}>
           {!choisi ? (
             <>
               <div className="champ">

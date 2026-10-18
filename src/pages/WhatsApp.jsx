@@ -65,7 +65,7 @@ export default function WhatsApp() {
       <div className="barre"><h2 style={{ margin: 0, flex: 1 }}>WhatsApp du serveur</h2></div>
       {message && <div className="message erreur">{message}</div>}
 
-      <div className="carte" style={{ maxWidth: 560 }}>
+      <div className="panneau" style={{ maxWidth: 560 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <span className={`badge ${statut.connected ? 'ok' : 'vide'}`}>
             {LIBELLES[statut.status] || statut.status}
@@ -107,7 +107,7 @@ export default function WhatsApp() {
         </div>
       </div>
 
-      <div className="carte" style={{ maxWidth: 560, marginTop: 18 }}>
+      <div className="panneau" style={{ maxWidth: 560, marginTop: 18 }}>
         <h3 style={{ marginTop: 0 }}>Message de test</h3>
         <div className="champ"><label>Téléphone (ex : 0708091011 ou +225…)</label>
           <input value={test.telephone} onChange={(e) => setTest({ ...test, telephone: e.target.value })} /></div>
