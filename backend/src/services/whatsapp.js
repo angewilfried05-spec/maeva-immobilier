@@ -352,8 +352,21 @@ async function envoyerDocument(to, fichier, legende = '') {
     const resolvedId = await resoudreDestinataire(waClient, numero);
     if (!resolvedId) return { success: false, error: 'Numéro non WhatsApp' };
     const media = MessageMedia.fromFilePath(fichier);
-    await waClient.sendMessage(resolvedId, media, { caption });
-    return { success: true };
+    await contournerLid(waClient);
+    let envoye;
+    try {
+      envoye = await waClient.sendMessage(`${numero}@c.us`, media, { caption });
+    } catch {
+      envoye = await waClient.sendMessage(resolvedId, media, { caption });
+    }
+    let distribue = await attendreDistribution(waClient, envoye);
+    if (!distribue && resolvedId !== `${numero}@c.us`) {
+      try {
+        const renvoi = await waClient.sendMessage(resolvedId, media, { caption });
+        distribue = await attendreDistribution(waClient, renvoi);
+      } catch {}
+    }
+    return { success: true, delivered: distribue };
   };
 
   fileEnvoi = fileEnvoi.then(run, run);

@@ -133,8 +133,9 @@ async function notifierVersement(versementId) {
     await pool.query(
       `INSERT INTO journal_audit (utilisateur_id, action, entite, entite_id, details)
        VALUES (NULL, 'quittance.whatsapp_auto', 'versement', $1, $2)`,
-      [versementId, JSON.stringify({ quittance: r.numero, envoye: !!res.success })]
+      [versementId, JSON.stringify({ quittance: r.numero, envoye: !!res.success, erreur: res.error || null })]
     );
+    if (!res.success) console.error('[WhatsApp auto] quittance :', res.error);
   } catch (e) {
     console.error('[WhatsApp auto] quittance :', e.message);
   }
