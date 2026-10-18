@@ -12,6 +12,7 @@ import Historique from './pages/Historique.jsx';
 import Recherche from './pages/Recherche.jsx';
 import ImportExcel from './pages/ImportExcel.jsx';
 import Utilisateurs from './pages/Utilisateurs.jsx';
+import WhatsApp from './pages/WhatsApp.jsx';
 import ChangerMotDePasse from './pages/ChangerMotDePasse.jsx';
 import Devis from './pages/Devis.jsx';
 import EditeurDevis from './pages/EditeurDevis.jsx';
@@ -101,7 +102,7 @@ export default function App() {
 
   const props = { data, reload, mois, setMois, setPage, utilisateur };
   const estAdmin = utilisateur.role === 'admin';
-  const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs'], ['sauvegardes', 'Sauvegardes']] : PAGES;
+  const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs'], ['whatsapp', 'WhatsApp'], ['sauvegardes', 'Sauvegardes']] : PAGES;
 
   return (
     <>
@@ -143,6 +144,7 @@ export default function App() {
           <Route path="/devis/:devisId" element={<EditeurDevisRoute {...props} />} />
           <Route path="/catalogue" element={<CatalogueArticles {...props} />} />
           {estAdmin && <Route path="/utilisateurs" element={<Utilisateurs {...props} />} />}
+          {estAdmin && <Route path="/whatsapp" element={<WhatsApp {...props} />} />}
           {estAdmin && <Route path="/sauvegardes" element={<Sauvegardes {...props} onRestaure={deconnecter} />} />}
           <Route path="*" element={<Navigate to="/tableau-de-bord" replace />} />
         </Routes>
