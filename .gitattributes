@@ -1,0 +1,10 @@
+# Fins de ligne : LF obligatoire pour les fichiers exécutés/lus par le serveur Linux,
+# sinon bash échoue ("pipefail\r: invalid option name") et nginx/systemd peuvent mal parser.
+deploy/** text eol=lf
+*.service text eol=lf
+*.sh      text eol=lf
+
+# Binaires : ne jamais convertir
+*.png  binary
+*.ico  binary
+*.exe  binary
