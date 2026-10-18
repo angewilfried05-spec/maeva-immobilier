@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -28,6 +29,8 @@ import androidx.navigation.compose.rememberNavController
 import com.maeva.immobilier.ui.connexion.ConnexionScreen
 import com.maeva.immobilier.ui.dashboard.DashboardScreen
 import com.maeva.immobilier.ui.encaisser.EncaisserScreen
+import com.maeva.immobilier.ui.locataires.FicheLocataireScreen
+import com.maeva.immobilier.ui.locataires.LocatairesScreen
 import com.maeva.immobilier.ui.relances.RelancesScreen
 import com.maeva.immobilier.ui.theme.MaevaTheme
 import kotlinx.coroutines.flow.map
@@ -41,8 +44,9 @@ class MainActivity : ComponentActivity() {
 }
 
 private val ONGLETS = listOf(
-    Triple("dashboard", "Tableau de bord", Icons.Default.Home),
+    Triple("dashboard", "Accueil", Icons.Default.Home),
     Triple("encaisser", "Encaisser", Icons.Default.ShoppingCart),
+    Triple("locataires", "Locataires", Icons.Default.Person),
     Triple("relances", "Relances", Icons.Default.MailOutline),
 )
 
@@ -90,6 +94,12 @@ fun Racine() {
                 ) {
                     composable("dashboard") { DashboardScreen(app) }
                     composable("encaisser") { EncaisserScreen(app) }
+                    composable("locataires") {
+                        LocatairesScreen(app) { id -> nav.navigate("locataire/$id") }
+                    }
+                    composable("locataire/{id}") { entree ->
+                        FicheLocataireScreen(app, entree.arguments?.getString("id")?.toIntOrNull() ?: 0)
+                    }
                     composable("relances") { RelancesScreen(app) }
                 }
             }

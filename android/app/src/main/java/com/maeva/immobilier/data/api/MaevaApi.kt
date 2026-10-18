@@ -30,6 +30,9 @@ interface MaevaApi {
     @GET("api/locataires")
     suspend fun locataires(): List<Locataire>
 
+    @GET("api/locataires/{id}")
+    suspend fun ficheLocataire(@retrofit2.http.Path("id") id: Int, @Query("mois") mois: String): FicheLocataire
+
     @POST("api/v1/versements")
     suspend fun versement(@Body body: VersementBody): Versement
 

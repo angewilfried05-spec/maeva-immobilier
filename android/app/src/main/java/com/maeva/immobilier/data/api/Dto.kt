@@ -101,3 +101,32 @@ data class Relance(
 )
 
 data class RelancesReponse(val mois: String, val relances: List<Relance>, val total_dette: Int)
+
+// Fiche locataire : GET /api/locataires/:id?mois=
+data class VersementRow(
+    val id: Int,
+    val locataire_id: Int,
+    val mois: String,
+    val montant: Int,
+    val date_versement: String?,
+    val mode: String?,
+    val note: String?,
+    val numero_quittance: String?,
+)
+
+data class LoyerHist(val a_partir_de: String, val montant: Int)
+data class NoteMois(val mois: String, val note: String?)
+
+data class FicheLocataire(
+    val id: Int,
+    val nom_locataire: String,
+    val numero_porte: String?,
+    val loyer_mensuel: Int,
+    val statut: String,
+    val telephone: String?,
+    val caution: Int?,
+    val situation: Situation?,
+    val versements: List<VersementRow> = emptyList(),
+    val loyers: List<LoyerHist> = emptyList(),
+    val notes: List<NoteMois> = emptyList(),
+)
