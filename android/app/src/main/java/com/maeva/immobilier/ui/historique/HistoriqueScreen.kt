@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import com.maeva.immobilier.MaevaApp
 import com.maeva.immobilier.data.api.ClotureBody
 import com.maeva.immobilier.data.api.ResumeMois
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.Puce
 import com.maeva.immobilier.ui.theme.Vert
 import com.maeva.immobilier.ui.theme.fcfa
 import com.maeva.immobilier.ui.theme.moisFr
@@ -50,21 +50,25 @@ fun HistoriqueScreen(app: MaevaApp) {
     val peutCloturer = role == "admin" || role == "gerant"
     val peutDecloturer = role == "admin"
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Historique des mois", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        erreur?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    Column(Modifier.fillMaxSize()) {
+        EnTete("Historique des mois")
+        erreur?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
+        }
 
         val liste = resumes
         if (liste == null) {
-            CircularProgressIndicator(Modifier.padding(top = 40.dp))
+            CircularProgressIndicator(Modifier.padding(top = 40.dp).align(Alignment.CenterHorizontally))
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(liste, key = { it.mois }) { r ->
-                    Card(
+                    CarteMaeva(
                         Modifier.fillMaxWidth(),
-                        colors = if (r.cloture) CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ) else CardDefaults.cardColors(),
+                        couleur = if (r.cloture) MaterialTheme.colorScheme.surfaceVariant
+                            else MaterialTheme.colorScheme.surface,
                     ) {
                         Column(Modifier.padding(14.dp)) {
                             Row(
@@ -75,9 +79,17 @@ fun HistoriqueScreen(app: MaevaApp) {
                                 Text(moisFr(r.mois), fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleMedium)
                                 if (r.cloture) {
-                                    Badge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                                        Text("Clôturé", Modifier.padding(4.dp))
-                                    }
+                                    Puce(
+                                        "Clôturé",
+                                        fond = MaterialTheme.colorScheme.secondaryContainer,
+                                        couleur = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                } else {
+                                    Puce(
+                                        "En cours",
+                                        fond = MaterialTheme.colorScheme.tertiaryContainer,
+                                        couleur = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    )
                                 }
                             }
                             Text(

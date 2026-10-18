@@ -1,6 +1,5 @@
 package com.maeva.immobilier.ui.encaisser
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,13 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,6 +42,10 @@ import com.maeva.immobilier.data.api.Locataire
 import com.maeva.immobilier.data.api.VersementBody
 import com.maeva.immobilier.data.local.VersementEnAttente
 import com.maeva.immobilier.data.sync.SyncWorker
+import com.maeva.immobilier.ui.theme.AvatarInitiales
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.Puce
 import com.maeva.immobilier.ui.theme.Vert
 import com.maeva.immobilier.ui.theme.fcfa
 import com.maeva.immobilier.ui.theme.moisFr
@@ -87,11 +91,10 @@ fun EncaisserScreen(app: MaevaApp) {
             sansAccent("${it.nom_locataire} ${it.numero_porte ?: ""}").contains(sansAccent(recherche))
         }).sortedBy { it.nom_locataire }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Encaisser", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("Mois comptable : ${moisFr(mois)}", style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(12.dp))
+    Column(Modifier.fillMaxSize()) {
+        EnTete("Encaisser", "Mois comptable : ${moisFr(mois)}")
 
+        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         if (dash?.alertes?.mois_cloture == true) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                 Text("Mois clôturé : encaissement impossible", Modifier.padding(12.dp))
@@ -117,12 +120,13 @@ fun EncaisserScreen(app: MaevaApp) {
                 label = { Text("Locataire (nom ou porte)") },
                 singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(6.dp))
-            LazyColumn(Modifier.weight(1f)) {
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(resultats) { l ->
                     val sit = dash?.situations?.get(l.id.toString())
-                    Row(
-                        Modifier.fillMaxWidth().clickable {
+                    CarteMaeva(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
                             choisi = l; recherche = ""; erreur = null
                             cle = UUID.randomUUID().toString()
                             moisConcerne = mois
@@ -132,21 +136,31 @@ fun EncaisserScreen(app: MaevaApp) {
                                 else -> (sit?.loyer ?: l.loyer_mensuel).toString()
                             }
                             objet = if ((sit?.dette ?: 0) > 0) "arriere" else "loyer"
-                        }.padding(vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        },
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(l.nom_locataire, fontWeight = FontWeight.SemiBold)
-                            Text(l.numero_porte ?: "", style = MaterialTheme.typography.bodySmall)
-                        }
-                        when {
-                            sit == null -> {}
-                            sit.dette > 0 -> Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
-                                Text("Doit ${fcfa(sit.dette)}", Modifier.padding(4.dp))
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AvatarInitiales(l.nom_locataire)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(l.nom_locataire, fontWeight = FontWeight.SemiBold)
+                                Text(l.numero_porte ?: "", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            else -> Badge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                                Text("À jour", Modifier.padding(4.dp))
+                            when {
+                                sit == null -> {}
+                                sit.dette > 0 -> Puce(
+                                    "Doit ${fcfa(sit.dette)}",
+                                    fond = MaterialTheme.colorScheme.errorContainer,
+                                    couleur = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                                else -> Puce(
+                                    "À jour",
+                                    fond = MaterialTheme.colorScheme.secondaryContainer,
+                                    couleur = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
                             }
                         }
                     }
@@ -154,15 +168,15 @@ fun EncaisserScreen(app: MaevaApp) {
             }
         } else {
             val l = choisi!!
-            Card {
-                Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
+            CarteMaeva(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(18.dp).verticalScroll(rememberScrollState())) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(l.nom_locataire, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         TextButton(onClick = { choisi = null; cle = null }) { Text("Changer") }
                     }
                     val sit = dash?.situations?.get(l.id.toString())
                     sit?.let {
-                        if (it.dette > 0) Text("Dette : ${fcfa(it.dette)} (${it.dette_mois} mois)",
+                        if (it.dette > 0) Text("Dette : ${fcfa(it.dette)} (${it.dette_mois.toInt()} mois)",
                             color = MaterialTheme.colorScheme.error)
                         else if (it.paye_jusqu_a != null) Text("Payé jusqu'à ${moisFr(it.paye_jusqu_a)}", color = Vert)
                     }
@@ -185,7 +199,10 @@ fun EncaisserScreen(app: MaevaApp) {
                     }
                     Spacer(Modifier.height(10.dp))
                     Text("Objet du versement", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         OBJETS.forEach { (v, l) ->
                             FilterChip(selected = objet == v, onClick = { objet = v }, label = { Text(l) })
                         }
@@ -212,7 +229,10 @@ fun EncaisserScreen(app: MaevaApp) {
                     }
                     Spacer(Modifier.height(10.dp))
                     Text("Mode de paiement", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         MODES.forEach { m ->
                             FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m) })
                         }
@@ -267,6 +287,7 @@ fun EncaisserScreen(app: MaevaApp) {
                     ) { Text(if (enCours) "Enregistrement…" else "Encaisser ${if (montant.isNotBlank()) fcfa(montant.toInt()) else ""}") }
                 }
             }
+        }
         }
     }
 }

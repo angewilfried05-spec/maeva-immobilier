@@ -14,6 +14,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -81,18 +85,45 @@ fun ConnexionScreen(session: SessionStore, onConnecte: () -> Unit) {
         return "Serveur injoignable : ${e.message}"
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        Modifier.fillMaxSize().background(
+            androidx.compose.ui.graphics.Brush.verticalGradient(
+                listOf(
+                    androidx.compose.ui.graphics.Color(0xFF123A68),
+                    androidx.compose.ui.graphics.Color(0xFF1A4F8B),
+                    androidx.compose.ui.graphics.Color(0xFFF3F5F9),
+                ),
+                startY = 0f,
+                endY = 900f,
+            )
+        ),
     ) {
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
         Image(
             painter = painterResource(R.drawable.logo),
             contentDescription = "MAEVA IMMOBILIER",
             modifier = Modifier.fillMaxWidth(0.72f),
         )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Gestion locative",
+            style = MaterialTheme.typography.bodyLarge,
+            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        )
         Spacer(Modifier.height(28.dp))
 
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        ) {
+            Column(Modifier.padding(20.dp)) {
         if (!mdpAChanger) {
             OutlinedTextField(
                 value = username, onValueChange = { username = it },
@@ -170,6 +201,9 @@ fun ConnexionScreen(session: SessionStore, onConnecte: () -> Unit) {
                     }
                 },
             ) { Text("Enregistrer le mot de passe") }
+        }
+            }
+        }
         }
     }
 }

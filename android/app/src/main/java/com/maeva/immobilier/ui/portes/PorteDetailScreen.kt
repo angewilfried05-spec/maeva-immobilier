@@ -9,11 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +34,11 @@ import com.maeva.immobilier.data.api.Batiment
 import com.maeva.immobilier.data.api.UniteBody
 import com.maeva.immobilier.data.api.UniteDetail
 import com.maeva.immobilier.data.api.messageErreur
+import com.maeva.immobilier.ui.theme.AvatarInitiales
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.Puce
+import com.maeva.immobilier.ui.theme.Vert
 import com.maeva.immobilier.ui.theme.fcfa
 import com.maeva.immobilier.ui.theme.moisFr
 import kotlinx.coroutines.launch
@@ -65,37 +69,38 @@ fun PorteDetailScreen(
         try { value = app.reseau.api().batiments() } catch (_: Exception) { }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
-        val u = unite
-        if (u == null) {
-            CircularProgressIndicator(Modifier.padding(top = 40.dp))
-            return@Column
+    val u0 = unite
+    if (u0 == null) {
+        Column(Modifier.fillMaxSize()) {
+            EnTete("Porte")
+            CircularProgressIndicator(Modifier.padding(top = 40.dp, start = 20.dp))
         }
+        return
+    }
+    val occupee = u0.occupations.any { it.statut == "Actif" }
 
-        val occupee = u.occupations.any { it.statut == "Actif" }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                listOfNotNull(u.batiment, u.porte).joinToString(" · "),
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-            )
-            if (!occupee) {
-                Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                    Text("Libre", Modifier.padding(4.dp))
-                }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        EnTete(
+            titre = listOfNotNull(u0.batiment, u0.porte).joinToString(" · "),
+            sousTitre = u0.loyer_base?.let { "Loyer de base : ${fcfa(it)}" },
+        ) {
+            if (occupee) {
+                Puce("Occupée", fond = MaterialTheme.colorScheme.secondaryContainer,
+                    couleur = MaterialTheme.colorScheme.onSecondaryContainer)
+            } else {
+                Puce("Libre", fond = MaterialTheme.colorScheme.tertiaryContainer,
+                    couleur = MaterialTheme.colorScheme.onTertiaryContainer)
             }
         }
-        u.loyer_base?.let {
-            Text("Loyer de base : ${fcfa(it)}", style = MaterialTheme.typography.bodyMedium)
-        }
 
+        Column(Modifier.padding(horizontal = 16.dp)) {
         if (gestion) {
             Row {
                 TextButton(onClick = { modifOuverte = true }) { Text("Modifier") }
                 if (!occupee) {
-                    TextButton(onClick = { onOccuper(u.id) }) { Text("Occuper") }
+                    TextButton(onClick = { onOccuper(u0.id) }) { Text("Occuper") }
                 }
-                if (admin && u.occupations.isEmpty()) {
+                if (admin && u0.occupations.isEmpty()) {
                     TextButton(onClick = { supprOuverte = true }) {
                         Text("Supprimer", color = MaterialTheme.colorScheme.error)
                     }
@@ -107,35 +112,42 @@ fun PorteDetailScreen(
 
         Text("Historique des occupations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
-        Card {
+        CarteMaeva {
             Column {
-                if (u.occupations.isEmpty()) {
-                    Text("Jamais occupée", Modifier.padding(16.dp))
+                if (u0.occupations.isEmpty()) {
+                    Text("Jamais occupée", Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                u.occupations.forEachIndexed { i, o ->
-                    Column(Modifier.fillMaxWidth().clickable { onOuvrirLocataire(o.id) }.padding(16.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                u0.occupations.forEachIndexed { i, o ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onOuvrirLocataire(o.id) }.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AvatarInitiales(o.nom_locataire, taille = 38)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
                             Text(o.nom_locataire, fontWeight = FontWeight.SemiBold)
                             Text(
-                                if (o.statut == "Actif") "En place" else "Parti",
+                                listOfNotNull(
+                                    "Loyer ${fcfa(o.loyer_mensuel)}",
+                                    o.debut_suivi?.take(7)?.let { "depuis ${moisFr(it)}" },
+                                    o.mois_sortie?.let { "sortie ${moisFr(it)}" },
+                                ).joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (o.statut == "Actif") MaterialTheme.colorScheme.secondary
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Text(
-                            listOfNotNull(
-                                "Loyer ${fcfa(o.loyer_mensuel)}",
-                                o.debut_suivi?.take(7)?.let { "depuis ${moisFr(it)}" },
-                                o.mois_sortie?.let { "sortie ${moisFr(it)}" },
-                            ).joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        )
+                        if (o.statut == "Actif") {
+                            Puce("En place", fond = MaterialTheme.colorScheme.secondaryContainer,
+                                couleur = Vert)
+                        } else {
+                            Puce("Parti")
+                        }
                     }
-                    if (i < u.occupations.size - 1) HorizontalDivider()
+                    if (i < u0.occupations.size - 1) HorizontalDivider()
                 }
             }
+        }
         }
     }
 

@@ -11,9 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -40,6 +39,10 @@ import com.maeva.immobilier.data.api.DepartBody
 import com.maeva.immobilier.data.api.FicheLocataire
 import com.maeva.immobilier.data.api.VersementRow
 import com.maeva.immobilier.data.api.messageErreur
+import com.maeva.immobilier.ui.theme.AvatarInitiales
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.Puce
 import com.maeva.immobilier.ui.theme.Vert
 import com.maeva.immobilier.ui.theme.fcfa
 import com.maeva.immobilier.ui.theme.moisFr
@@ -66,19 +69,26 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
         try { value = app.reseau.api().ficheLocataire(locataireId, mois) } catch (_: Exception) { }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
-        val f = fiche
-        if (f == null) {
-            CircularProgressIndicator(Modifier.padding(top = 40.dp))
-            return@Column
+    val f0 = fiche
+    if (f0 == null) {
+        Column(Modifier.fillMaxSize()) {
+            EnTete("Locataire")
+            CircularProgressIndicator(Modifier.padding(top = 40.dp, start = 20.dp))
+        }
+        return
+    }
+    val f = f0
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        EnTete(
+            titre = f.nom_locataire,
+            sousTitre = listOfNotNull(f.numero_porte?.let { "Porte $it" }, f.telephone)
+                .joinToString(" · ").ifBlank { null },
+        ) {
+            AvatarInitiales(f.nom_locataire, taille = 46)
         }
 
-        Text(f.nom_locataire, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(
-            listOfNotNull(f.numero_porte?.let { "Porte $it" }, f.telephone).joinToString(" · "),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-        )
+        Column(Modifier.padding(horizontal = 16.dp)) {
         if (gestion) {
             Row {
                 TextButton(onClick = onModifier) { Text("Modifier") }
@@ -92,7 +102,7 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
         Spacer(Modifier.height(6.dp))
 
         f.situation?.let { s ->
-            Card {
+            CarteMaeva(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Loyer")
@@ -101,7 +111,7 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
                     if (s.dette > 0) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Dette", color = MaterialTheme.colorScheme.error)
-                            Text("${fcfa(s.dette)} (${s.dette_mois} mois)",
+                            Text("${fcfa(s.dette)} (${s.dette_mois.toInt()} mois)",
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
                         }
                     }
@@ -124,10 +134,11 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
 
         Text("Versements", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
-        Card {
+        CarteMaeva(Modifier.fillMaxWidth()) {
             Column {
                 if (f.versements.isEmpty()) {
-                    Text("Aucun versement", Modifier.padding(16.dp))
+                    Text("Aucun versement", Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 f.versements.forEachIndexed { i, v ->
                     Row(
@@ -182,6 +193,7 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
         erreur?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, color = MaterialTheme.colorScheme.error)
+        }
         }
     }
 

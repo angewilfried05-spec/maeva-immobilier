@@ -1,17 +1,21 @@
 package com.maeva.immobilier.ui.batiments
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Domain
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -32,6 +36,10 @@ import com.maeva.immobilier.data.api.Batiment
 import com.maeva.immobilier.data.api.BatimentBody
 import com.maeva.immobilier.data.api.Unite
 import com.maeva.immobilier.data.api.messageErreur
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.PastilleIcone
+import com.maeva.immobilier.ui.theme.Puce
 import kotlinx.coroutines.launch
 
 /** Bâtiments : liste + nombre de portes/libres ; appui → portes du bâtiment. */
@@ -54,37 +62,43 @@ fun BatimentsScreen(app: MaevaApp, onOuvrir: (Int) -> Unit = {}) {
         try { value = app.reseau.api().unites() } catch (_: Exception) { }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("Bâtiments", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Column(Modifier.fillMaxSize()) {
+        EnTete("Bâtiments") {
             if (gestion) TextButton(onClick = { creation = true }) { Text("+ Nouveau") }
         }
-        erreur?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        erreur?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
+        }
 
         val liste = batiments
         if (liste == null) {
-            CircularProgressIndicator(Modifier.padding(top = 40.dp))
+            CircularProgressIndicator(Modifier.padding(top = 40.dp).align(Alignment.CenterHorizontally))
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(liste, key = { it.id }) { b ->
                     val portesDuBatiment = unites.filter { it.batiment_id == b.id }
                     val libres = portesDuBatiment.count { it.statut == "libre" }
-                    Card(Modifier.fillMaxWidth().clickable { onOuvrir(b.id) }) {
+                    CarteMaeva(Modifier.fillMaxWidth(), onClick = { onOuvrir(b.id) }) {
                         Row(
-                            Modifier.padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            PastilleIcone(Icons.Default.Domain)
+                            Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(b.nom, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    "${portesDuBatiment.size} porte(s)" +
-                                        if (libres > 0) " · $libres libre(s)" else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (libres > 0) MaterialTheme.colorScheme.tertiary
-                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                )
+                                Spacer(Modifier.padding(1.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Puce("${portesDuBatiment.size} porte(s)")
+                                    if (libres > 0) Puce(
+                                        "$libres libre(s)",
+                                        fond = MaterialTheme.colorScheme.tertiaryContainer,
+                                        couleur = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    )
+                                }
                             }
                             if (gestion) {
                                 Row {
@@ -93,6 +107,12 @@ fun BatimentsScreen(app: MaevaApp, onOuvrir: (Int) -> Unit = {}) {
                                         Text("Suppr.", color = MaterialTheme.colorScheme.error)
                                     }
                                 }
+                            } else {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }

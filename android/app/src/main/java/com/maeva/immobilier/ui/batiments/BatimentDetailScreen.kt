@@ -1,6 +1,5 @@
 package com.maeva.immobilier.ui.batiments
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,10 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Badge
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,6 +33,10 @@ import com.maeva.immobilier.data.api.Unite
 import com.maeva.immobilier.data.api.UniteBody
 import com.maeva.immobilier.data.api.messageErreur
 import com.maeva.immobilier.ui.portes.DialogPorte
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.PastilleIcone
+import com.maeva.immobilier.ui.theme.Puce
 import com.maeva.immobilier.ui.theme.Vert
 import com.maeva.immobilier.ui.theme.fcfa
 import kotlinx.coroutines.launch
@@ -55,58 +59,72 @@ fun BatimentDetailScreen(app: MaevaApp, batimentId: Int, onOuvrirPorte: (Int) ->
         try { value = app.reseau.api().unites().filter { it.batiment_id == batimentId } } catch (_: Exception) { }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(batiment?.nom ?: "Bâtiment", style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold)
-                batiment?.adresse?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                }
-            }
+    Column(Modifier.fillMaxSize()) {
+        EnTete(
+            titre = batiment?.nom ?: "Bâtiment",
+            sousTitre = batiment?.adresse,
+        ) {
             if (gestion) TextButton(onClick = { creationOuverte = true }) { Text("+ Porte") }
         }
         val libres = portes?.count { it.statut == "libre" } ?: 0
-        Text("$libres libre(s) sur ${portes?.size ?: 0} portes",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-        erreur?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Puce("${portes?.size ?: 0} portes")
+            if (libres > 0) Puce(
+                "$libres libre(s)",
+                fond = MaterialTheme.colorScheme.tertiaryContainer,
+                couleur = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+        erreur?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
+        }
         Spacer(Modifier.height(8.dp))
 
         val liste = portes
         if (liste == null) {
-            Text("Chargement…", style = MaterialTheme.typography.bodyMedium)
+            Text("Chargement…", style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp))
         } else {
-            LazyColumn {
+            LazyColumn(
+                Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(liste, key = { it.id }) { u ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable { onOuvrirPorte(u.id) }
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(u.porte ?: "(sans nom)", fontWeight = FontWeight.SemiBold)
-                            Text(
-                                u.nom_locataire
-                                    ?: (u.loyer_base?.takeIf { it > 0 }?.let { "Loyer : ${fcfa(it)}" } ?: "—"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    CarteMaeva(Modifier.fillMaxWidth(), onClick = { onOuvrirPorte(u.id) }) {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PastilleIcone(
+                                Icons.Default.MeetingRoom,
+                                fond = if (u.statut == "libre") MaterialTheme.colorScheme.tertiaryContainer
+                                    else MaterialTheme.colorScheme.primaryContainer,
                             )
-                        }
-                        if (u.statut == "libre") {
-                            Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                                Text("Libre", Modifier.padding(4.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(u.porte ?: "(sans nom)", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    u.nom_locataire
+                                        ?: (u.loyer_base?.takeIf { it > 0 }?.let { "Loyer : ${fcfa(it)}" } ?: "—"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                        } else {
-                            Badge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                                Text("Occupée", Modifier.padding(4.dp), color = Vert)
+                            if (u.statut == "libre") {
+                                Puce(
+                                    "Libre",
+                                    fond = MaterialTheme.colorScheme.tertiaryContainer,
+                                    couleur = MaterialTheme.colorScheme.onTertiaryContainer,
+                                )
+                            } else {
+                                Puce(
+                                    "Occupée",
+                                    fond = MaterialTheme.colorScheme.secondaryContainer,
+                                    couleur = Vert,
+                                )
                             }
                         }
                     }
-                    HorizontalDivider()
                 }
             }
         }

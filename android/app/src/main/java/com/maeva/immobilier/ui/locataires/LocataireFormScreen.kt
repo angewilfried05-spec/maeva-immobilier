@@ -37,6 +37,7 @@ import com.maeva.immobilier.data.api.FicheLocataire
 import com.maeva.immobilier.data.api.LocataireBody
 import com.maeva.immobilier.data.api.Unite
 import com.maeva.immobilier.data.api.messageErreur
+import com.maeva.immobilier.ui.theme.EnTete
 import com.maeva.immobilier.ui.theme.fcfa
 import com.maeva.immobilier.ui.theme.moisFr
 import kotlinx.coroutines.launch
@@ -95,16 +96,12 @@ fun LocataireFormScreen(
         } catch (e: Exception) { erreur = messageErreur(e); charge = false }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                if (edition) "Modifier le locataire" else "Nouveau locataire",
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-            )
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        EnTete(if (edition) "Modifier le locataire" else "Nouveau locataire") {
             TextButton(onClick = onRetour) { Text("Annuler") }
         }
-        Spacer(Modifier.height(10.dp))
 
+        Column(Modifier.padding(horizontal = 16.dp)) {
         if (charge) { CircularProgressIndicator(); return@Column }
 
         if (!edition) {
@@ -226,5 +223,6 @@ fun LocataireFormScreen(
                 }
             },
         ) { Text(if (enCours) "Enregistrement…" else if (edition) "Enregistrer" else "Créer le locataire") }
+        }
     }
 }

@@ -8,16 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -40,6 +38,10 @@ import com.maeva.immobilier.data.api.Utilisateur
 import com.maeva.immobilier.data.api.UtilisateurBody
 import com.maeva.immobilier.data.api.UtilisateurMajBody
 import com.maeva.immobilier.data.api.messageErreur
+import com.maeva.immobilier.ui.theme.AvatarInitiales
+import com.maeva.immobilier.ui.theme.CarteMaeva
+import com.maeva.immobilier.ui.theme.EnTete
+import com.maeva.immobilier.ui.theme.Puce
 import kotlinx.coroutines.launch
 
 private val ROLES = listOf("admin", "gerant", "comptable", "lecteur")
@@ -65,47 +67,65 @@ fun UtilisateursScreen(app: MaevaApp) {
         try { value = app.reseau.api().utilisateurs() } catch (_: Exception) { }
     }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("Utilisateurs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Column(Modifier.fillMaxSize()) {
+        EnTete("Utilisateurs", "Comptes et rôles") {
             if (role == "admin") {
                 TextButton(onClick = { creationOuverte = true }) { Text("+ Nouveau") }
             }
         }
-        erreur?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Spacer(Modifier.height(8.dp))
+        erreur?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
+        }
 
         if (role != null && role != "admin") {
             Text("La gestion des comptes est réservée à l'administrateur.",
-                style = MaterialTheme.typography.bodyMedium)
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp))
             return@Column
         }
         val liste = users
         if (liste == null) {
-            Text("Chargement…", style = MaterialTheme.typography.bodyMedium)
+            Text("Chargement…", style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(16.dp))
         } else {
-            LazyColumn {
+            LazyColumn(
+                Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(liste, key = { it.id }) { u ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(u.nom_complet ?: u.username, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "@${u.username} · ${libelleRole(u.role)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    CarteMaeva(Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AvatarInitiales(
+                                u.nom_complet ?: u.username,
+                                fond = if (u.role == "admin") MaterialTheme.colorScheme.tertiaryContainer
+                                    else MaterialTheme.colorScheme.primaryContainer,
+                                couleur = if (u.role == "admin") MaterialTheme.colorScheme.onTertiaryContainer
+                                    else MaterialTheme.colorScheme.onPrimaryContainer,
                             )
-                        }
-                        if (u.actif == false) {
-                            Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
-                                Text("Inactif", Modifier.padding(4.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(u.nom_complet ?: u.username, fontWeight = FontWeight.SemiBold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "@${u.username}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Puce(libelleRole(u.role))
+                                    if (u.actif == false) {
+                                        Puce("Inactif",
+                                            fond = MaterialTheme.colorScheme.errorContainer,
+                                            couleur = MaterialTheme.colorScheme.onErrorContainer)
+                                    }
+                                }
                             }
+                            TextButton(onClick = { edition = u }) { Text("Gérer") }
                         }
-                        TextButton(onClick = { edition = u }) { Text("Gérer") }
                     }
-                    HorizontalDivider()
                 }
             }
         }
