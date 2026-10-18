@@ -51,6 +51,9 @@ import java.time.LocalDate
 import java.util.UUID
 
 private val MODES = listOf("Espèces", "Mobile Money", "Virement", "Chèque")
+private val OBJETS = listOf("loyer" to "Loyer", "arriere" to "Arriéré", "avance" to "Avance")
+private val MOIS_RE = Regex("\\d{4}-\\d{2}")
+private val DATE_RE = Regex("\\d{4}-\\d{2}-\\d{2}")
 
 private fun sansAccent(s: String): String =
     Normalizer.normalize(s, Normalizer.Form.NFD).replace("\\p{M}".toRegex(), "").lowercase()
@@ -65,6 +68,9 @@ fun EncaisserScreen(app: MaevaApp) {
     var montant by remember { mutableStateOf("") }
     var mode by remember { mutableStateOf("Espèces") }
     var note by remember { mutableStateOf("") }
+    var objet by remember { mutableStateOf("loyer") }
+    var moisConcerne by remember { mutableStateOf(mois) }
+    var datePaiement by remember { mutableStateOf(LocalDate.now().toString()) }
     var enCours by remember { mutableStateOf(false) }
     var quittance by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
@@ -101,6 +107,7 @@ fun EncaisserScreen(app: MaevaApp) {
                     Spacer(Modifier.height(10.dp))
                     Button(onClick = {
                         choisi = null; quittance = null; montant = ""; note = ""; cle = null
+                        objet = "loyer"; moisConcerne = mois; datePaiement = LocalDate.now().toString()
                     }) { Text("Nouvel encaissement") }
                 }
             }
@@ -118,10 +125,13 @@ fun EncaisserScreen(app: MaevaApp) {
                         Modifier.fillMaxWidth().clickable {
                             choisi = l; recherche = ""; erreur = null
                             cle = UUID.randomUUID().toString()
+                            moisConcerne = mois
+                            datePaiement = LocalDate.now().toString()
                             montant = when {
                                 (sit?.dette ?: 0) > 0 -> sit!!.dette.toString()
                                 else -> (sit?.loyer ?: l.loyer_mensuel).toString()
                             }
+                            objet = if ((sit?.dette ?: 0) > 0) "arriere" else "loyer"
                         }.padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
@@ -174,6 +184,33 @@ fun EncaisserScreen(app: MaevaApp) {
                         }
                     }
                     Spacer(Modifier.height(10.dp))
+                    Text("Objet du versement", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OBJETS.forEach { (v, l) ->
+                            FilterChip(selected = objet == v, onClick = { objet = v }, label = { Text(l) })
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = moisConcerne, onValueChange = { moisConcerne = it },
+                            label = { Text("Mois concerné (AAAA-MM)") }, singleLine = true,
+                            isError = moisConcerne.isNotBlank() && !MOIS_RE.matches(moisConcerne),
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = datePaiement, onValueChange = { datePaiement = it },
+                            label = { Text("Date (AAAA-MM-JJ)") }, singleLine = true,
+                            isError = datePaiement.isNotBlank() && !DATE_RE.matches(datePaiement),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (objet == "arriere") {
+                        Text("Arriéré : le versement sera rattaché au mois choisi.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Spacer(Modifier.height(10.dp))
                     Text("Mode de paiement", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         MODES.forEach { m ->
@@ -190,7 +227,9 @@ fun EncaisserScreen(app: MaevaApp) {
                     info?.let { Spacer(Modifier.height(8.dp)); Text(it, color = Vert) }
                     Spacer(Modifier.height(14.dp))
                     Button(
-                        enabled = !enCours && (montant.toIntOrNull() ?: 0) > 0 && dash?.alertes?.mois_cloture != true,
+                        enabled = !enCours && (montant.toIntOrNull() ?: 0) > 0
+                            && MOIS_RE.matches(moisConcerne)
+                            && dash?.alertes?.mois_cloture != true,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             val m = montant.toIntOrNull() ?: return@Button
@@ -199,8 +238,9 @@ fun EncaisserScreen(app: MaevaApp) {
                                 try {
                                     val v = app.reseau.api().versement(
                                         VersementBody(
-                                            locataire_id = l.id, mois = mois, montant = m,
-                                            mode = mode, note = note.ifBlank { null },
+                                            locataire_id = l.id, mois = moisConcerne, montant = m,
+                                            date_versement = datePaiement.takeIf { DATE_RE.matches(it) },
+                                            mode = mode, note = note.ifBlank { null }, type = objet,
                                             cle_idempotence = cle,
                                         )
                                     )
@@ -212,8 +252,9 @@ fun EncaisserScreen(app: MaevaApp) {
                                         VersementEnAttente(
                                             cleIdempotence = cle ?: UUID.randomUUID().toString(),
                                             locataireId = l.id, nomLocataire = l.nom_locataire,
-                                            mois = mois, montant = m, mode = mode,
-                                            note = note.ifBlank { null },
+                                            mois = moisConcerne, montant = m, mode = mode,
+                                            note = note.ifBlank { null }, type = objet,
+                                            dateVersement = datePaiement.takeIf { DATE_RE.matches(it) },
                                         )
                                     )
                                     SyncWorker.lancerMaintenant(app)

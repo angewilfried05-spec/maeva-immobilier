@@ -115,11 +115,12 @@ data class Resume(
 
 data class VersementBody(
     val locataire_id: Int,
-    val mois: String,
+    val mois: String,            // mois couvert par le paiement (arriéré = mois passé)
     val montant: Int,
     val date_versement: String? = null,
     val mode: String = "Espèces",
     val note: String? = null,
+    val type: String? = null,    // loyer | arriere | avance
     val cle_idempotence: String? = null,
 )
 

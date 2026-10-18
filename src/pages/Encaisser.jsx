@@ -4,6 +4,11 @@ import { fcfa, moisLabel, situationBadge, aujourdhui } from '../utils/format.js'
 import { api } from '../utils/api.js';
 
 const MODES = ['Espèces', 'Mobile Money', 'Virement', 'Chèque'];
+const OBJETS = [
+  ['loyer', 'Loyer'],
+  ['arriere', 'Arriéré (dette)'],
+  ['avance', "Avance"],
+];
 
 // Flux de caissier : rechercher un locataire → montant → quittance.
 // Une clé d'idempotence est générée par encaissement affiché : renvoyer le
@@ -15,6 +20,8 @@ export default function Encaisser({ data, reload, mois, setMois }) {
   const [mode, setMode] = useState('Espèces');
   const [date, setDate] = useState(aujourdhui());
   const [note, setNote] = useState('');
+  const [objet, setObjet] = useState('loyer');
+  const [moisConcerne, setMoisConcerne] = useState(mois);
   const [enCours, setEnCours] = useState(false);
   const [resultat, setResultat] = useState(null);
   const [erreur, setErreur] = useState(null);
@@ -39,10 +46,12 @@ export default function Encaisser({ data, reload, mois, setMois }) {
 
   const choisir = (l) => {
     setChoisi(l); setRecherche(''); setResultat(null); setErreur(null);
+    setObjet('loyer'); setMoisConcerne(mois);
     cleRef.current = crypto.randomUUID();
     // Suggestion : la dette si elle existe, sinon un mois de loyer
     const s = data.situations[l.id];
     setMontant(String(s?.dette > 0 ? s.dette : s?.loyer || l.loyer_mensuel || ''));
+    if (s?.dette > 0) setObjet('arriere');
   };
 
   const encaisser = async () => {
@@ -51,8 +60,8 @@ export default function Encaisser({ data, reload, mois, setMois }) {
     setEnCours(true); setErreur(null);
     try {
       const v = await api.post('/api/v1/versements', {
-        locataire_id: choisi.id, mois, montant: m, date_versement: date,
-        mode, note: note || undefined, cle_idempotence: cleRef.current,
+        locataire_id: choisi.id, mois: moisConcerne || mois, montant: m, date_versement: date,
+        mode, note: note || undefined, type: objet, cle_idempotence: cleRef.current,
       });
       setResultat(v);
       reload();
@@ -63,6 +72,7 @@ export default function Encaisser({ data, reload, mois, setMois }) {
 
   const nouveau = () => {
     setChoisi(null); setResultat(null); setMontant(''); setNote('');
+    setObjet('loyer'); setMoisConcerne(mois);
     cleRef.current = null;
     champRecherche.current?.focus();
   };
@@ -147,13 +157,30 @@ export default function Encaisser({ data, reload, mois, setMois }) {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <div className="champ" style={{ flex: 1 }}>
+                  <label>Objet</label>
+                  <select value={objet} onChange={(e) => setObjet(e.target.value)}>
+                    {OBJETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <div className="champ" style={{ flex: 1 }}>
+                  <label>Mois concerné</label>
+                  <input type="month" value={moisConcerne} onChange={(e) => setMoisConcerne(e.target.value)} />
+                </div>
+              </div>
+              {objet === 'arriere' && (
+                <div style={{ fontSize: 13, color: '#5b6b7c', marginBottom: 8 }}>
+                  Arriéré : le versement sera rattaché au mois choisi ci-dessus (ex. {moisLabel(moisConcerne)}).
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div className="champ" style={{ flex: 1 }}>
                   <label>Mode</label>
                   <select value={mode} onChange={(e) => setMode(e.target.value)}>
                     {MODES.map((m) => <option key={m}>{m}</option>)}
                   </select>
                 </div>
                 <div className="champ" style={{ flex: 1 }}>
-                  <label>Date</label>
+                  <label>Date de paiement</label>
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                 </div>
               </div>

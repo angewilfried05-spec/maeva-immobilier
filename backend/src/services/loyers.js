@@ -1,6 +1,7 @@
 // Opérations d'écriture sur le compte d'un locataire.
 const MOIS_VALIDE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const MODES = ['Espèces', 'Mobile Money', 'Virement', 'Chèque'];
+const TYPES = ['loyer', 'avance', 'caution', 'arriere'];
 
 const moisDe = (date) => (date ? String(date).slice(0, 7) : null);
 
@@ -23,7 +24,7 @@ async function ajouterVersement(client, { locataire_id, mois, montant, date_vers
      VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, $10)
      ON CONFLICT (cle_idempotence) WHERE cle_idempotence IS NOT NULL DO NOTHING
      RETURNING *`,
-    [locataire_id, mois, montant, date_versement || null, type, MODES.includes(mode) ? mode : 'Espèces', note, importe, created_by, cle_idempotence]
+    [locataire_id, mois, montant, date_versement || null, TYPES.includes(type) ? type : 'loyer', MODES.includes(mode) ? mode : 'Espèces', note, importe, created_by, cle_idempotence]
   );
   let v = rows[0];
   let existant = false;

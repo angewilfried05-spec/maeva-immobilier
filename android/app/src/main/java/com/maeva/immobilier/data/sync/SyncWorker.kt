@@ -32,7 +32,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 api.versement(
                     VersementBody(
                         locataire_id = v.locataireId, mois = v.mois, montant = v.montant,
-                        mode = v.mode, note = v.note, cle_idempotence = v.cleIdempotence,
+                        date_versement = v.dateVersement,
+                        mode = v.mode, note = v.note, type = v.type,
+                        cle_idempotence = v.cleIdempotence,
                     )
                 )
                 dao.retirer(v)

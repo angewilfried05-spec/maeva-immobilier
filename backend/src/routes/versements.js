@@ -97,12 +97,15 @@ router.post('/:id/quittance/whatsapp', requireAuth, SAISIE, async (req, res) => 
   }
 });
 
-// POST /api/versements  { locataire_id, mois, montant, date_versement?, mode?, note?, cle_idempotence? }
+// POST /api/versements  { locataire_id, mois, montant, date_versement?, mode?, note?, type?, cle_idempotence? }
+//  - mois : mois couvert par le paiement (un arriéré porte le mois passé)
+//  - type : 'loyer' (défaut) | 'arriere' | 'avance' — 'caution' reste interne (départ)
 router.post('/', requireAuth, SAISIE, async (req, res) => {
-  const { locataire_id, mois, montant, date_versement, mode, note, cle_idempotence } = req.body || {};
+  const { locataire_id, mois, montant, date_versement, mode, note, cle_idempotence, type } = req.body || {};
   const m = Math.round(Number(montant));
   if (!locataire_id || !MOIS_VALIDE.test(String(mois || ''))) return res.status(400).json({ message: 'Locataire et mois requis' });
   if (!(m > 0)) return res.status(400).json({ message: 'Le montant doit être supérieur à 0' });
+  if (type && !['loyer', 'arriere', 'avance'].includes(type)) return res.status(400).json({ message: 'Type de versement invalide' });
   try {
     if (await refuserSiCloture(res, mois)) return;
     const loc = await pool.query('SELECT statut FROM locataires WHERE id = $1', [Number(locataire_id)]);
@@ -110,6 +113,7 @@ router.post('/', requireAuth, SAISIE, async (req, res) => {
     if (loc.rows[0].statut === 'Vide') return res.status(400).json({ message: 'Porte vide : aucun loyer à encaisser' });
     const v = await ajouterVersement(pool, {
       locataire_id: Number(locataire_id), mois, montant: m, date_versement, mode,
+      type: type || 'loyer',
       note: texteOuNull(note), created_by: req.utilisateur.id,
       cle_idempotence: texteOuNull(cle_idempotence),
     });

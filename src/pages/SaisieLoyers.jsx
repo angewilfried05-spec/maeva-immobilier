@@ -6,7 +6,8 @@ import { fcfa, moisLabel, aujourdhui, dateFr } from '../utils/format.js';
 import { api } from '../utils/api.js';
 
 const MODES = ['Espèces', 'Mobile Money', 'Virement', 'Chèque'];
-const TYPES = { loyer: 'Loyer', avance: "Avance d'entrée", caution: 'Retenue caution' };
+const TYPES = { loyer: 'Loyer', avance: "Avance d'entrée", caution: 'Retenue caution', arriere: 'Arriéré' };
+const OBJETS_SAISIE = [['loyer', 'Loyer'], ['arriere', 'Arriéré (dette)'], ['avance', 'Avance']];
 
 export default function SaisieLoyers({ data, reload, mois, setMois, utilisateur }) {
   const [montants, setMontants] = useState({}); // { locId: '50000' } versements à enregistrer
@@ -177,7 +178,7 @@ export default function SaisieLoyers({ data, reload, mois, setMois, utilisateur 
 }
 
 function DetailVersements({ locataire, mois, data, lecture, admin, onFermer, reload }) {
-  const vide = { montant: '', date_versement: aujourdhui(), mode: 'Espèces', note: '' };
+  const vide = { montant: '', date_versement: aujourdhui(), mode: 'Espèces', note: '', type: 'loyer', mois_concerne: mois };
   const [form, setForm] = useState(vide);
   const [erreur, setErreur] = useState(null);
   const versements = data.versements.filter((v) => v.locataire_id === locataire.id);
@@ -186,7 +187,10 @@ function DetailVersements({ locataire, mois, data, lecture, admin, onFermer, rel
   const ajouter = async () => {
     setErreur(null);
     try {
-      await api.post('/api/versements', { ...form, locataire_id: locataire.id, mois, montant: Number(form.montant) });
+      await api.post('/api/versements', {
+        locataire_id: locataire.id, mois: form.mois_concerne || mois, montant: Number(form.montant),
+        date_versement: form.date_versement, mode: form.mode, note: form.note, type: form.type,
+      });
       setForm(vide); await reload();
     } catch (e) { setErreur(e.message); }
   };
@@ -225,8 +229,14 @@ function DetailVersements({ locataire, mois, data, lecture, admin, onFermer, rel
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div className="champ"><label>Montant (FCFA)</label>
               <input type="number" min="0" autoFocus value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} /></div>
-            <div className="champ"><label>Date</label>
+            <div className="champ"><label>Date de paiement</label>
               <input type="date" value={form.date_versement} onChange={(e) => setForm({ ...form, date_versement: e.target.value })} /></div>
+            <div className="champ"><label>Objet</label>
+              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                {OBJETS_SAISIE.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select></div>
+            <div className="champ"><label>Mois concerné</label>
+              <input type="month" value={form.mois_concerne} onChange={(e) => setForm({ ...form, mois_concerne: e.target.value })} /></div>
             <div className="champ"><label>Mode</label>
               <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
                 {MODES.map((m) => <option key={m}>{m}</option>)}

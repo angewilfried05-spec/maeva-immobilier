@@ -8,7 +8,7 @@ const VIDE = {
   numero_porte: '', nom_locataire: '', loyer_mensuel: '', date_entree: '', statut: 'Actif', telephone: '', note: '',
   debut_suivi: '', solde_initial: 0, caution: 0, avance: 0,
 };
-const TYPES = { loyer: 'Loyer', avance: "Avance d'entrée", caution: 'Retenue sur caution' };
+const TYPES = { loyer: 'Loyer', avance: "Avance d'entrée", caution: 'Retenue sur caution', arriere: 'Arriéré' };
 
 const equivalentMois = (montant, loyer) => (Number(loyer) > 0 && Number(montant) > 0
   ? ` = ${fmtNombre(Math.round((Number(montant) / Number(loyer)) * 10) / 10)} mois` : '');

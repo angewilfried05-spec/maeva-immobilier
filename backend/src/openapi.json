@@ -103,7 +103,8 @@
             "enum": [
               "loyer",
               "avance",
-              "caution"
+              "caution",
+              "arriere"
             ]
           },
           "mode": {
@@ -661,7 +662,8 @@
                     "type": "integer"
                   },
                   "mois": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Mois couvert par le paiement — un arriéré porte le mois passé"
                   },
                   "montant": {
                     "type": "integer"
@@ -669,6 +671,15 @@
                   "date_versement": {
                     "type": "string",
                     "format": "date"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "loyer",
+                      "arriere",
+                      "avance"
+                    ],
+                    "default": "loyer"
                   },
                   "mode": {
                     "type": "string",

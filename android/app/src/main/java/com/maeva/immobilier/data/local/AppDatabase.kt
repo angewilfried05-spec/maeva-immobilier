@@ -21,6 +21,8 @@ data class VersementEnAttente(
     val montant: Int,
     val mode: String,
     val note: String?,
+    val type: String = "loyer",
+    val dateVersement: String? = null,
     val creeLe: Long = System.currentTimeMillis(),
     val tentatives: Int = 0,
     val derniereErreur: String? = null,
@@ -44,14 +46,23 @@ interface FileDao {
     suspend fun marquerEchec(cle: String, erreur: String?)
 }
 
-@Database(entities = [VersementEnAttente::class], version = 1)
+@Database(entities = [VersementEnAttente::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun fileDao(): FileDao
 
     companion object {
+        // v1 → v2 : objet du versement + date de paiement sur la file hors-ligne
+        private val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE versements_en_attente ADD COLUMN type TEXT NOT NULL DEFAULT 'loyer'")
+                db.execSQL("ALTER TABLE versements_en_attente ADD COLUMN dateVersement TEXT")
+            }
+        }
+
         @Volatile private var instance: AppDatabase? = null
         fun get(context: Context): AppDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context, AppDatabase::class.java, "maeva.db")
+                .addMigrations(MIGRATION_1_2)
                 .build().also { instance = it }
         }
     }

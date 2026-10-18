@@ -8,7 +8,7 @@ const { nombreEnLettres } = require('./nombre-en-lettres');
 
 const NUM_FMT = (n) => Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 const MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-const TYPES = { loyer: 'LOYER', avance: 'AVANCE', caution: 'CAUTION' };
+const TYPES = { loyer: 'LOYER', avance: 'AVANCE', caution: 'CAUTION', arriere: 'ARRIÉRÉ' };
 
 function dateFr(d) {
   if (!d) return '';
