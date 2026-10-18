@@ -39,4 +39,13 @@ router.post('/test-send', requireAuth, ADMIN, async (req, res) => {
   res.json({ ok: true, simulated: !!r.simulated, delivered: r.delivered !== false });
 });
 
+// POST /api/whatsapp/relances — lance immédiatement la tournée de relances du mois
+router.post('/relances', requireAuth, ADMIN, async (req, res) => {
+  try {
+    const { envoyerRelancesDuJour } = require('../services/notifications');
+    const r = await envoyerRelancesDuJour();
+    res.json({ ok: true, ...r });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 module.exports = router;

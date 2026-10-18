@@ -117,6 +117,9 @@ router.post('/', requireAuth, SAISIE, async (req, res) => {
       await recalculerResume(mois);
       await journal(null, req, 'versement.cree', 'versement', v.id,
         { locataire_id: v.locataire_id, mois: v.mois, montant: v.montant, mode: v.mode, quittance: v.numero_quittance });
+      // Quittance PDF envoyée au locataire par WhatsApp si le client est lié
+      // (asynchrone : ne bloque ni ne fait échouer l'encaissement).
+      require('../services/notifications').notifierVersement(v.id);
     }
     res.status(v.existant ? 200 : 201).json(v);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur: ' + e.message }); }

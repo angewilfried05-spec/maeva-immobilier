@@ -38,6 +38,16 @@ export default function WhatsApp() {
     setChargement(false);
   };
 
+  const lancerRelances = async () => {
+    if (!window.confirm('Envoyer maintenant un rappel WhatsApp à tous les locataires en dette ce mois-ci ?')) return;
+    setChargement(true); setMessage(null);
+    try {
+      const r = await api.post('/api/whatsapp/relances', {});
+      setMessage(`Relances : ${r.envoyes}/${r.total} envoyée(s).`);
+    } catch (e) { setMessage(e.message); }
+    setChargement(false);
+  };
+
   const envoyerTest = async () => {
     setChargement(true); setMessage(null);
     try {
@@ -73,7 +83,7 @@ export default function WhatsApp() {
         )}
 
         {statut.connected && (
-          <div className="message succes">Le serveur peut envoyer les relances et les quittances PDF directement par WhatsApp.</div>
+          <div className="message succes">Le serveur peut envoyer les relances et les quittances PDF directement par WhatsApp. Les relances automatiques partent les 8 et 15 du mois à 9h.</div>
         )}
         {statut.status === 'DISCONNECTED' && (
           <p>Le client n'est pas lié. Cliquez sur « Afficher le QR » puis scannez-le depuis WhatsApp.</p>
@@ -90,6 +100,10 @@ export default function WhatsApp() {
           {statut.connected && (
             <button className="btn rouge" disabled={chargement} onClick={() => action('logout')}>Déconnecter</button>
           )}
+          <button className="btn vert" disabled={chargement || !statut.connected} onClick={lancerRelances}
+            title="Envoie un rappel à tous les locataires en dette ce mois-ci">
+            Lancer les relances maintenant
+          </button>
         </div>
       </div>
 

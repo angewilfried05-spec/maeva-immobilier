@@ -22,6 +22,7 @@ const relancesRoutes = require('./routes/relances');
 const whatsappRoutes = require('./routes/whatsapp');
 const { demarrerSiConfigure } = require('./services/whatsapp');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
+const { demarrerNotifications } = require('./services/notifications');
 
 const app = express();
 app.disable('x-powered-by');
@@ -102,6 +103,7 @@ function start(port, host) {
       console.log(`✅ Backend MAEVA IMMOBILIER sur ${server.address().address}:${server.address().port}`);
       demarrerSauvegardeAuto();
       demarrerSiConfigure();
+      demarrerNotifications();
       resolve(server);
     });
   });
