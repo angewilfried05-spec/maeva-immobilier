@@ -3,7 +3,30 @@ import SelecteurMois from '../components/SelecteurMois.jsx';
 import { fcfa, fmtNombre, moisLabel } from '../utils/format.js';
 import { api } from '../utils/api.js';
 
-export default function Dashboard({ data, reload, mois, setMois, setPage }) {
+// Petites icônes SVG inline (identité visuelle APK : pastille + glyphe)
+const ICO = {
+  percus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>,
+  attendus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16v16l-3-2-2.5 2-2.5-2L9 20l-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>,
+  depenses: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3v18M17 7c0-2-2.2-3-5-3s-5 1-5 3 2 3 5 3 5 1 5 3-2.2 3-5 3-5-1-5-3"/></svg>,
+  portes: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M3 21h18"/><circle cx="13.5" cy="12" r="1"/></svg>,
+  cautions: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>,
+  dette: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3L2 21h20z"/><path d="M12 10v5M12 18h.01"/></svg>,
+};
+
+function Tuile({ icone, libelle, valeur, classe, sous }) {
+  return (
+    <div className={`carte ${classe || ''}`}>
+      <div className="icone">{icone}</div>
+      <div className="corps">
+        <div className="libelle">{libelle}</div>
+        <div className="valeur">{valeur}</div>
+        {sous && <div className="sous">{sous}</div>}
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard({ data, reload, mois, setMois, setPage, utilisateur }) {
   const [remisEdit, setRemisEdit] = useState(null);
   const [message, setMessage] = useState(null);
 
@@ -15,6 +38,7 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
   }, [data]);
 
   const remis = data.resume ? Number(data.resume.montant_remis_au_proprietaire) || 0 : 0;
+  const detteTotale = Object.values(data.situations).reduce((s, x) => s + x.dette, 0);
 
   const exporterExcel = async () => {
     try {
@@ -30,73 +54,71 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
     } catch (e) { setMessage({ type: 'erreur', txt: e.message }); }
   };
 
+  const prenom = (utilisateur?.nom_complet || '').split(' ')[0] || '';
+
   return (
     <div>
-      <div className="barre">
-        <h2 style={{ margin: 0, flex: 1 }}>Tableau de bord</h2>
-        <SelecteurMois mois={mois} onChange={setMois} />
-        <button className="btn vert" onClick={exporterExcel}>Exporter Excel</button>
-      </div>
-      {message && <div className={`message ${message.type}`}>{message.txt}</div>}
-
-      {data.alertes?.mois_cloture && (
-        <div className="message succes">Le mois {moisLabel(mois)} est <b>clôturé</b> : les écritures sont figées.</div>
-      )}
-      {(data.alertes?.portes_libres > 0 || data.en_retard.length > 0) && (
-        <div className="cartes">
-          {data.alertes?.portes_libres > 0 && (
-            <div className="carte orange">
-              <div className="libelle">Portes libres</div>
-              <div className="valeur">{data.alertes.portes_libres}</div>
-              <button className="btn petit" style={{ marginTop: 8 }} onClick={() => setPage('batiments')}>Voir les unités</button>
-            </div>
-          )}
-          {data.en_retard.length > 0 && (
-            <div className="carte rouge">
-              <div className="libelle">Locataires à relancer</div>
-              <div className="valeur">{data.en_retard.length}</div>
-              <button className="btn petit" style={{ marginTop: 8 }} onClick={() => setPage('relances')}>Relancer</button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="cartes">
-        <div className="carte"><div className="libelle">Loyers attendus</div><div className="valeur">{fcfa(stats.attendu)} F</div></div>
-        <div className="carte vert"><div className="libelle">Loyers perçus</div><div className="valeur">{fcfa(stats.percu)} F</div></div>
-        <div className="carte orange"><div className="libelle">Dépenses</div><div className="valeur">{fcfa(stats.depenses)} F</div></div>
-        <div className={`carte ${stats.solde >= 0 ? 'vert' : 'rouge'}`}><div className="libelle">Solde (restes)</div><div className="valeur">{fcfa(stats.solde)} F</div></div>
-      </div>
-
-      <div className="cartes">
-        <div className="carte">
-          <div className="libelle">Dette totale des locataires</div>
-          <div className="valeur" style={{ color: 'var(--rouge)' }}>
-            {fcfa(Object.values(data.situations).reduce((s, x) => s + x.dette, 0))} F
+      <div className="hero">
+        <div className="hero-haut">
+          <div>
+            <div className="bonjour">Bonjour,</div>
+            <div className="nom">{utilisateur?.nom_complet || '…'}</div>
+          </div>
+          <div className="hero-actions">
+            <SelecteurMois mois={mois} onChange={setMois} />
+            <button className="btn ghost" onClick={exporterExcel}>Exporter Excel</button>
           </div>
         </div>
-        <div className="carte">
-          <div className="libelle">Cautions détenues</div>
-          <div className="valeur">{fcfa(data.cautions_detenues)} F</div>
+        <div>
+          <div className="hero-mois">Solde — {moisLabel(mois)}</div>
+          <div className="hero-solde">{fcfa(stats.solde)} F</div>
         </div>
+        <div className="hero-actions">
+          <span className="puce blanche">Perçu {fcfa(stats.percu)} F</span>
+          <span className="puce or">Attendu {fcfa(stats.attendu)} F</span>
+          {data.alertes?.mois_cloture && <span className="puce blanche">Mois clôturé — écritures figées</span>}
+          {(data.alertes?.portes_libres > 0) &&
+            <span className="puce blanche">{data.alertes.portes_libres} porte(s) libre(s)</span>}
+        </div>
+        {message && <div className={`message ${message.type}`} style={{ marginBottom: 0 }}>{message.txt}</div>}
+      </div>
+
+      <div className="cartes">
+        <Tuile icone={ICO.percus} classe="vert" libelle="Loyers perçus" valeur={`${fcfa(stats.percu)} F`} />
+        <Tuile icone={ICO.attendus} classe="bleu" libelle="Loyers attendus" valeur={`${fcfa(stats.attendu)} F`} />
+        <Tuile icone={ICO.depenses} libelle="Dépenses" valeur={`${fcfa(stats.depenses)} F`} />
+        <Tuile icone={ICO.portes} classe="orange" libelle="Portes libres" valeur={data.alertes?.portes_libres ?? 0}
+               sous={data.alertes?.portes_libres > 0 ? 'Cliquer pour voir' : undefined} />
+        <Tuile icone={ICO.cautions} classe="bleu" libelle="Cautions détenues" valeur={`${fcfa(data.cautions_detenues)} F`} />
+        <Tuile icone={ICO.dette} classe="rouge" libelle="Dette des locataires" valeur={`${fcfa(detteTotale)} F`} />
         <div className="carte">
-          <div className="libelle">Sommes remis au Boss — {moisLabel(mois)}</div>
-          {remisEdit === null ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="valeur">{fcfa(remis)} F</div>
-              <button className="btn petit" onClick={() => setRemisEdit(String(remis))}>Modifier</button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input className="montant" autoFocus value={remisEdit}
-                onChange={(e) => setRemisEdit(e.target.value.replace(/[^\d]/g, ''))}
-                onKeyDown={(e) => { if (e.key === 'Enter') validerRemis(); }} />
-              <button className="btn petit vert" onClick={validerRemis}>OK</button>
-              <button className="btn petit gris" onClick={() => setRemisEdit(null)}>Annuler</button>
-            </div>
-          )}
+          <div className="icone">{ICO.cautions}</div>
+          <div className="corps">
+            <div className="libelle">Remis au Boss — {moisLabel(mois)}</div>
+            {remisEdit === null ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="valeur">{fcfa(remis)} F</div>
+                <button className="btn petit" onClick={() => setRemisEdit(String(remis))}>Modifier</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <input className="montant" autoFocus value={remisEdit}
+                  onChange={(e) => setRemisEdit(e.target.value.replace(/[^\d]/g, ''))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') validerRemis(); }} />
+                <button className="btn petit vert" onClick={validerRemis}>OK</button>
+                <button className="btn petit gris" onClick={() => setRemisEdit(null)}>Annuler</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {data.en_retard.length > 0 && (
+        <div className="message erreur">
+          <b>{data.en_retard.length}</b> locataire(s) en retard —{' '}
+          <a style={{ color: 'inherit', cursor: 'pointer' }} onClick={() => setPage('relances')}><u>Relancer</u></a>
+        </div>
+      )}
 
       <h2>Par bâtiment</h2>
       <table className="tableau">
