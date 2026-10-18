@@ -26,6 +26,18 @@ interface MaevaApi {
     @GET("api/v1/auth/me")
     suspend fun me(): Utilisateur
 
+    @GET("api/utilisateurs")
+    suspend fun utilisateurs(): List<Utilisateur>
+
+    @POST("api/utilisateurs")
+    suspend fun creerUtilisateur(@Body body: UtilisateurBody): Utilisateur
+
+    @PUT("api/utilisateurs/{id}")
+    suspend fun majUtilisateur(@retrofit2.http.Path("id") id: Int, @Body body: UtilisateurMajBody): Utilisateur
+
+    @DELETE("api/utilisateurs/{id}")
+    suspend fun supprUtilisateur(@retrofit2.http.Path("id") id: Int): Response<Unit>
+
     @GET("api/dashboard")
     suspend fun dashboard(@Query("mois") mois: String): Dashboard
 

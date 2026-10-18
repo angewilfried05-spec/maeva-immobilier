@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -17,10 +18,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -38,6 +41,7 @@ import com.maeva.immobilier.ui.locataires.FicheLocataireScreen
 import com.maeva.immobilier.ui.locataires.LocataireFormScreen
 import com.maeva.immobilier.ui.portes.PorteDetailScreen
 import com.maeva.immobilier.ui.relances.RelancesScreen
+import com.maeva.immobilier.ui.utilisateurs.UtilisateursScreen
 import com.maeva.immobilier.ui.theme.MaevaTheme
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -54,6 +58,7 @@ private val ONGLETS = listOf(
     Triple("encaisser", "Encaisser", Icons.Default.ShoppingCart),
     Triple("batiments", "Bâtiments", Icons.Default.Apartment),
     Triple("relances", "Relances", Icons.Default.MailOutline),
+    Triple("utilisateurs", "Utilisateurs", Icons.Default.Group),
 )
 
 @Composable
@@ -73,10 +78,12 @@ fun Racine() {
         true -> {
             val backStack by nav.currentBackStackEntryAsState()
             val route = backStack?.destination?.route
+            val role by produceState<String?>(initialValue = null) { value = app.session.role() }
+            val onglets = ONGLETS.filter { it.first != "utilisateurs" || role == "admin" }
             Scaffold(
                 bottomBar = {
                     NavigationBar {
-                        ONGLETS.forEach { (r, label, icone) ->
+                        onglets.forEach { (r, label, icone) ->
                             NavigationBarItem(
                                 selected = route == r,
                                 onClick = {
@@ -87,7 +94,7 @@ fun Racine() {
                                     }
                                 },
                                 icon = { Icon(icone, contentDescription = label) },
-                                label = { Text(label, maxLines = 1) },
+                                label = { Text(label, maxLines = 1, fontSize = 10.sp) },
                             )
                         }
                     }
@@ -144,6 +151,7 @@ fun Racine() {
                         )
                     }
                     composable("relances") { RelancesScreen(app) }
+                    composable("utilisateurs") { UtilisateursScreen(app) }
                     composable("historique") { HistoriqueScreen(app) }
                 }
             }

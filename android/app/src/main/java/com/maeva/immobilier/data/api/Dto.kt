@@ -12,6 +12,22 @@ data class Utilisateur(
     val nom_complet: String?,
     val role: String,
     val doit_changer_mdp: Boolean = false,
+    val actif: Boolean? = null,
+    val last_login: String? = null,
+)
+
+data class UtilisateurBody(
+    val username: String,
+    val nom_complet: String,
+    val role: String,
+    val password: String,
+)
+
+data class UtilisateurMajBody(
+    val nom_complet: String? = null,
+    val role: String? = null,
+    val actif: Boolean? = null,
+    val password: String? = null,
 )
 
 data class SessionReponse(
