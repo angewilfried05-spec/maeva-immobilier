@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
+import embleme from '../assets/logo-embleme.png';
 import { api, setSession } from '../utils/api.js';
 
 const CLE_SOUVENIR = 'maeva_souvenir';
@@ -47,25 +48,53 @@ export default function Connexion({ onConnecte }) {
 
   return (
     <div className="connexion-fond">
-      <form className="connexion-carte" onSubmit={valider}>
-        <img src={logo} alt="MAEVA IMMOBILIER" className="connexion-logo" />
-        {erreur && <div className="message erreur">{erreur}</div>}
-        <div className="champ">
-          <label>Nom d'utilisateur</label>
-          <input autoFocus value={utilisateur} onChange={(e) => setUtilisateur(e.target.value)} />
-        </div>
-        <div className="champ">
-          <label>Mot de passe</label>
-          <input type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} />
-        </div>
-        <label className="souvenir-ligne">
-          <input type="checkbox" checked={souvenir} onChange={(e) => setSouvenir(e.target.checked)} />
-          Se souvenir de moi sur cet ordinateur
-        </label>
-        <button className="btn connexion-btn" type="submit" disabled={enCours}>
-          {enCours ? 'Vérification…' : 'Se connecter'}
-        </button>
-      </form>
+      <div className="connexion-wrapper">
+        <aside className="connexion-bienvenue">
+          <img src={embleme} alt="" className="bienvenue-embleme" />
+          <h1>Bienvenue</h1>
+          <p className="bienvenue-texte">
+            Votre gestion immobilière, simplifiée. Encaissements, quittances,
+            relances et suivi de vos bâtiments — au même endroit.
+          </p>
+          <ul className="bienvenue-points">
+            <li>
+              <span className="point-icone">◈</span>
+              Suivi des loyers, cautions et arriérés en temps réel
+            </li>
+            <li>
+              <span className="point-icone">◈</span>
+              Quittances PDF envoyées automatiquement par WhatsApp
+            </li>
+            <li>
+              <span className="point-icone">◈</span>
+              Relances programmées et paiements hors-ligne sur mobile
+            </li>
+          </ul>
+          <div className="bienvenue-plateformes">
+            Disponible sur Web · Windows · Android
+          </div>
+        </aside>
+
+        <form className="connexion-carte" onSubmit={valider}>
+          <img src={logo} alt="MAEVA IMMOBILIER" className="connexion-logo" />
+          {erreur && <div className="message erreur">{erreur}</div>}
+          <div className="champ">
+            <label>Nom d'utilisateur</label>
+            <input autoFocus value={utilisateur} onChange={(e) => setUtilisateur(e.target.value)} />
+          </div>
+          <div className="champ">
+            <label>Mot de passe</label>
+            <input type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} />
+          </div>
+          <label className="souvenir-ligne">
+            <input type="checkbox" checked={souvenir} onChange={(e) => setSouvenir(e.target.checked)} />
+            Se souvenir de moi sur cet ordinateur
+          </label>
+          <button className="btn connexion-btn" type="submit" disabled={enCours}>
+            {enCours ? 'Vérification…' : 'Se connecter'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

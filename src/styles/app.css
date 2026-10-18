@@ -221,12 +221,43 @@ input.montant { width: 140px; text-align: right; }
 .connexion-fond {
   flex: 1; display: flex; align-items: center; justify-content: center;
   background: linear-gradient(160deg, #0d2a4d 0%, var(--bleu-fonce) 45%, var(--bleu) 100%);
+  padding: 24px;
+}
+.connexion-wrapper {
+  display: flex; width: 920px; max-width: 96vw; border-radius: 24px;
+  overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.4);
+}
+.connexion-bienvenue {
+  flex: 1.1; padding: 52px 46px; color: #fff;
+  background:
+    radial-gradient(600px 300px at 110% -10%, rgba(185,135,44,.28), transparent 60%),
+    linear-gradient(165deg, #0c2545 0%, var(--bleu-fonce) 55%, var(--bleu) 115%);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.bienvenue-embleme { width: 110px; margin-bottom: 26px; filter: drop-shadow(0 6px 16px rgba(0,0,0,.35)); }
+.connexion-bienvenue h1 { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.bienvenue-texte {
+  margin-top: 10px; font-size: 15.5px; line-height: 1.65;
+  color: rgba(255,255,255,.82); max-width: 40ch;
+}
+.bienvenue-points { list-style: none; margin-top: 30px; display: grid; gap: 14px; }
+.bienvenue-points li {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 14.5px; color: rgba(255,255,255,.9);
+}
+.point-icone {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+  background: rgba(185,135,44,.22); color: var(--or-clair, #e8c88a);
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.bienvenue-plateformes {
+  margin-top: 38px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.14);
+  font-size: 13px; letter-spacing: .06em; color: rgba(255,255,255,.55);
 }
 .connexion-carte {
-  background: #fff; border-radius: 24px; padding: 38px 42px;
-  width: 430px; max-width: 92vw;
-  box-shadow: 0 24px 60px rgba(0,0,0,.4);
-  display: flex; flex-direction: column;
+  background: #fff; padding: 46px 46px;
+  width: 430px; flex: 0 0 430px;
+  display: flex; flex-direction: column; justify-content: center;
 }
 .connexion-logo { width: 230px; margin: 0 auto 24px; display: block; }
 .connexion-carte .champ input { font-size: 17px; padding: 13px 14px; }
@@ -307,6 +338,13 @@ input.montant { width: 140px; text-align: right; }
   .modal-fond { padding: 8px; align-items: flex-end; }
   .modal .actions { flex-wrap: wrap; }
 
-  .connexion-carte { padding: 26px 22px; }
+  .connexion-fond { padding: 14px; }
+  .connexion-wrapper { flex-direction: column; width: 100%; }
+  .connexion-bienvenue { padding: 30px 26px; flex: none; }
+  .bienvenue-embleme { width: 70px; margin-bottom: 14px; }
+  .connexion-bienvenue h1 { font-size: 26px; }
+  .bienvenue-points { margin-top: 20px; }
+  .bienvenue-plateformes { margin-top: 24px; }
+  .connexion-carte { padding: 30px 24px; width: auto; flex: none; }
   .connexion-logo { width: 180px; }
 }
