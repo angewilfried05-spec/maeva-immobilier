@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -37,7 +36,6 @@ import com.maeva.immobilier.ui.encaisser.EncaisserScreen
 import com.maeva.immobilier.ui.historique.HistoriqueScreen
 import com.maeva.immobilier.ui.locataires.FicheLocataireScreen
 import com.maeva.immobilier.ui.locataires.LocataireFormScreen
-import com.maeva.immobilier.ui.locataires.LocatairesScreen
 import com.maeva.immobilier.ui.portes.PorteDetailScreen
 import com.maeva.immobilier.ui.relances.RelancesScreen
 import com.maeva.immobilier.ui.theme.MaevaTheme
@@ -54,7 +52,6 @@ class MainActivity : ComponentActivity() {
 private val ONGLETS = listOf(
     Triple("dashboard", "Accueil", Icons.Default.Home),
     Triple("encaisser", "Encaisser", Icons.Default.ShoppingCart),
-    Triple("locataires", "Locataires", Icons.Default.Person),
     Triple("batiments", "Bâtiments", Icons.Default.Apartment),
     Triple("relances", "Relances", Icons.Default.MailOutline),
 )
@@ -105,13 +102,6 @@ fun Racine() {
                         DashboardScreen(app, onHistorique = { nav.navigate("historique") })
                     }
                     composable("encaisser") { EncaisserScreen(app) }
-                    composable("locataires") {
-                        LocatairesScreen(
-                            app,
-                            onOuvrir = { id -> nav.navigate("locataire/$id") },
-                            onNouveau = { nav.navigate("locataire/nouveau") },
-                        )
-                    }
                     composable("locataire/nouveau?unite={unite}",
                         arguments = listOf(navArgument("unite") { type = NavType.StringType; nullable = true })
                     ) { entree ->
@@ -150,6 +140,7 @@ fun Racine() {
                             uniteId = entree.arguments?.getString("id")?.toIntOrNull() ?: 0,
                             onOccuper = { uid -> nav.navigate("locataire/nouveau?unite=$uid") },
                             onSupprimee = { nav.popBackStack() },
+                            onOuvrirLocataire = { lid -> nav.navigate("locataire/$lid") },
                         )
                     }
                     composable("relances") { RelancesScreen(app) }

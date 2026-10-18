@@ -1,5 +1,6 @@
 package com.maeva.immobilier.ui.portes
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +46,7 @@ fun PorteDetailScreen(
     uniteId: Int,
     onOccuper: (Int) -> Unit = {},
     onSupprimee: () -> Unit = {},
+    onOuvrirLocataire: (Int) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var rafraichi by remember { mutableStateOf(0) }
@@ -111,7 +113,7 @@ fun PorteDetailScreen(
                     Text("Jamais occupée", Modifier.padding(16.dp))
                 }
                 u.occupations.forEachIndexed { i, o ->
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                    Column(Modifier.fillMaxWidth().clickable { onOuvrirLocataire(o.id) }.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(o.nom_locataire, fontWeight = FontWeight.SemiBold)
                             Text(
