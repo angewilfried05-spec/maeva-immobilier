@@ -145,17 +145,28 @@ router.put('/note', requireAuth, SAISIE, async (req, res) => {
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });
 
-// DELETE /api/versements/:id
-router.delete('/:id', requireAuth, SAISIE, async (req, res) => {
+// DELETE /api/versements/:id  — réservé à l'admin. Le versement et sa quittance
+// (ON DELETE CASCADE) sont supprimés ; tout est conservé dans le journal d'audit,
+// motif d'annulation inclus (body ou ?motif=).
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const ex = await pool.query('SELECT mois FROM versements WHERE id = $1', [Number(req.params.id)]);
-    if (!ex.rows[0]) return res.status(404).json({ message: 'Versement introuvable' });
-    if (await refuserSiCloture(res, ex.rows[0].mois)) return;
-    const r = await pool.query('DELETE FROM versements WHERE id = $1 RETURNING *', [Number(req.params.id)]);
-    if (!r.rows[0]) return res.status(404).json({ message: 'Versement introuvable' });
-    await recalculerResume(r.rows[0].mois);
-    await journal(null, req, 'versement.supprime', 'versement', r.rows[0].id,
-      { locataire_id: r.rows[0].locataire_id, mois: r.rows[0].mois, montant: r.rows[0].montant });
+    const ex = await pool.query(
+      `SELECT v.*, q.numero AS quittance, l.nom_locataire
+       FROM versements v
+       LEFT JOIN quittances q ON q.versement_id = v.id
+       JOIN locataires l ON l.id = v.locataire_id
+       WHERE v.id = $1`, [Number(req.params.id)]);
+    const v = ex.rows[0];
+    if (!v) return res.status(404).json({ message: 'Versement introuvable' });
+    if (await refuserSiCloture(res, v.mois)) return;
+    const motif = texteOuNull(req.body?.motif) || texteOuNull(req.query.motif);
+    await pool.query('DELETE FROM versements WHERE id = $1', [v.id]);
+    await recalculerResume(v.mois);
+    await journal(null, req, 'versement.supprime', 'versement', v.id, {
+      locataire_id: v.locataire_id, locataire: v.nom_locataire, mois: v.mois,
+      montant: v.montant, mode: v.mode, type: v.type,
+      date_versement: v.date_versement, quittance: v.quittance || null, motif,
+    });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

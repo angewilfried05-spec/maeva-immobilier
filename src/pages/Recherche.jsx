@@ -3,7 +3,7 @@ import Situation from '../components/Situation.jsx';
 import { fcfa } from '../utils/format.js';
 import { FicheLocataire } from './Locataires.jsx';
 
-export default function Recherche({ data, mois }) {
+export default function Recherche({ data, mois, utilisateur, reload }) {
   const [terme, setTerme] = useState('');
   const [selection, setSelection] = useState(null);
 
@@ -50,7 +50,7 @@ export default function Recherche({ data, mois }) {
       {selection && (
         <div style={{ marginTop: 24 }}>
           <h2>Fiche — {selection.nom_locataire}</h2>
-          <FicheLocataire id={selection.id} mois={mois} />
+          <FicheLocataire id={selection.id} mois={mois} admin={utilisateur?.role === 'admin'} reload={reload} />
         </div>
       )}
     </div>

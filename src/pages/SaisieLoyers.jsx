@@ -169,13 +169,14 @@ export default function SaisieLoyers({ data, reload, mois, setMois, utilisateur 
 
       {detail && (
         <DetailVersements locataire={detail} mois={mois} data={data} lecture={lecture}
+          admin={utilisateur?.role === 'admin'}
           onFermer={() => setDetail(null)} reload={reload} />
       )}
     </div>
   );
 }
 
-function DetailVersements({ locataire, mois, data, lecture, onFermer, reload }) {
+function DetailVersements({ locataire, mois, data, lecture, admin, onFermer, reload }) {
   const vide = { montant: '', date_versement: aujourdhui(), mode: 'Espèces', note: '' };
   const [form, setForm] = useState(vide);
   const [erreur, setErreur] = useState(null);
@@ -191,8 +192,9 @@ function DetailVersements({ locataire, mois, data, lecture, onFermer, reload }) 
   };
 
   const supprimer = async (v) => {
-    if (!window.confirm(`Supprimer le versement de ${fcfa(v.montant)} F du ${dateFr(v.date_versement)} ?`)) return;
-    try { await api.del(`/api/versements/${v.id}`); await reload(); } catch (e) { setErreur(e.message); }
+    if (!window.confirm(`Annuler le versement de ${fcfa(v.montant)} F du ${dateFr(v.date_versement)}${v.numero_quittance ? ` (quittance ${v.numero_quittance})` : ''} ?`)) return;
+    const motif = window.prompt('Motif de l\'annulation (optionnel) :') || '';
+    try { await api.del(`/api/versements/${v.id}`, { motif }); await reload(); } catch (e) { setErreur(e.message); }
   };
 
   return (
@@ -211,7 +213,7 @@ function DetailVersements({ locataire, mois, data, lecture, onFermer, reload }) 
                 <td className="num"><b>{fcfa(v.montant)} F</b></td>
                 <td>{v.mode}{v.type !== 'loyer' && <div style={{ fontSize: 12, color: '#7a8899' }}>{TYPES[v.type]}</div>}</td>
                 <td style={{ fontSize: 13 }}>{v.note || ''}</td>
-                <td>{!lecture && <button className="btn petit rouge" onClick={() => supprimer(v)}>✕</button>}</td>
+                <td>{admin && <button className="btn petit rouge" title="Annuler ce versement" onClick={() => supprimer(v)}>✕</button>}</td>
               </tr>
             ))}
           </tbody>

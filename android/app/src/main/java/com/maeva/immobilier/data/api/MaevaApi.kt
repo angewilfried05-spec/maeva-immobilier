@@ -83,6 +83,10 @@ interface MaevaApi {
     @POST("api/v1/versements")
     suspend fun versement(@Body body: VersementBody): Versement
 
+    // Annulation d'un versement — réservé à l'admin côté serveur ; motif journalisé.
+    @DELETE("api/versements/{id}")
+    suspend fun supprVersement(@retrofit2.http.Path("id") id: Int, @Query("motif") motif: String? = null): Response<Unit>
+
     @GET("api/relances")
     suspend fun relances(@Query("mois") mois: String): RelancesReponse
 

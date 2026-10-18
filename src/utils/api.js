@@ -115,7 +115,7 @@ export const api = {
   get: (u) => request('GET', u),
   post: (u, b) => request('POST', u, { body: b }),
   put: (u, b) => request('PUT', u, { body: b }),
-  del: (u) => request('DELETE', u),
+  del: (u, b) => request('DELETE', u, { body: b }),
   upload: (u, formData) => request('POST', u, { formData }),
   telecharger,
   login: (username, password) => request('POST', '/api/v1/auth/login', { body: { username, password } }),

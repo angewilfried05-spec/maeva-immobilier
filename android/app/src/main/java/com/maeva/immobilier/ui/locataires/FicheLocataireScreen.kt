@@ -38,6 +38,7 @@ import com.maeva.immobilier.MaevaApp
 import com.maeva.immobilier.data.Quittances
 import com.maeva.immobilier.data.api.DepartBody
 import com.maeva.immobilier.data.api.FicheLocataire
+import com.maeva.immobilier.data.api.VersementRow
 import com.maeva.immobilier.data.api.messageErreur
 import com.maeva.immobilier.ui.theme.Vert
 import com.maeva.immobilier.ui.theme.fcfa
@@ -54,10 +55,12 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
     var telechargement by remember { mutableStateOf<Int?>(null) }
     var erreur by remember { mutableStateOf<String?>(null) }
     var departOuvert by remember { mutableStateOf(false) }
+    var annulation by remember { mutableStateOf<VersementRow?>(null) }
     var rafraichi by remember { mutableStateOf(0) }
 
     val role by produceState<String?>(initialValue = null) { value = app.session.role() }
     val gestion = role == "admin" || role == "gerant"
+    val admin = role == "admin"
 
     val fiche by produceState<FicheLocataire?>(initialValue = null, rafraichi) {
         try { value = app.reseau.api().ficheLocataire(locataireId, mois) } catch (_: Exception) { }
@@ -151,18 +154,25 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
                         if (telechargement == v.id) {
                             CircularProgressIndicator(Modifier.height(24.dp), strokeWidth = 2.dp)
                         } else {
-                            TextButton(onClick = {
-                                telechargement = v.id; erreur = null
-                                scope.launch {
-                                    try {
-                                        val pdf = Quittances.telecharger(context, app, v.id, v.numero_quittance)
-                                        Quittances.ouvrir(context, pdf)
-                                    } catch (e: Exception) {
-                                        erreur = e.message ?: "Téléchargement impossible"
+                            Column(horizontalAlignment = Alignment.End) {
+                                TextButton(onClick = {
+                                    telechargement = v.id; erreur = null
+                                    scope.launch {
+                                        try {
+                                            val pdf = Quittances.telecharger(context, app, v.id, v.numero_quittance)
+                                            Quittances.ouvrir(context, pdf)
+                                        } catch (e: Exception) {
+                                            erreur = e.message ?: "Téléchargement impossible"
+                                        }
+                                        telechargement = null
                                     }
-                                    telechargement = null
+                                }) { Text("Quittance") }
+                                if (admin) {
+                                    TextButton(onClick = { annulation = v }) {
+                                        Text("Annuler", color = MaterialTheme.colorScheme.error)
+                                    }
                                 }
-                            }) { Text("Quittance") }
+                            }
                         }
                     }
                     if (i < f.versements.size - 1) HorizontalDivider()
@@ -173,6 +183,36 @@ fun FicheLocataireScreen(app: MaevaApp, locataireId: Int, onModifier: () -> Unit
             Spacer(Modifier.height(8.dp))
             Text(it, color = MaterialTheme.colorScheme.error)
         }
+    }
+
+    annulation?.let { v ->
+        var motif by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { annulation = null },
+            title = { Text("Annuler le versement ?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${fcfa(v.montant)} — ${moisFr(v.mois)}")
+                    v.numero_quittance?.let { Text("La quittance $it sera annulée avec le versement.") }
+                    Text("L'opération restera tracée dans le journal d'audit.",
+                        style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(value = motif, onValueChange = { motif = it },
+                        label = { Text("Motif (optionnel)") }, singleLine = true)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    annulation = null; erreur = null
+                    scope.launch {
+                        try {
+                            val rep = app.reseau.api().supprVersement(v.id, motif.ifBlank { null })
+                            if (rep.isSuccessful) rafraichi++ else erreur = "Annulation refusée (${rep.code()})"
+                        } catch (e: Exception) { erreur = messageErreur(e) }
+                    }
+                }) { Text("Annuler le versement", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { annulation = null }) { Text("Retour") } },
+        )
     }
 
     if (departOuvert && fiche != null) {

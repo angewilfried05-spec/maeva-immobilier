@@ -13,7 +13,7 @@ const TYPES = { loyer: 'Loyer', avance: "Avance d'entrée", caution: 'Retenue su
 const equivalentMois = (montant, loyer) => (Number(loyer) > 0 && Number(montant) > 0
   ? ` = ${fmtNombre(Math.round((Number(montant) / Number(loyer)) * 10) / 10)} mois` : '');
 
-export default function Locataires({ data, reload, mois }) {
+export default function Locataires({ data, reload, mois, utilisateur }) {
   const [filtreBat, setFiltreBat] = useState('');
   const [voirPartis, setVoirPartis] = useState(false);
   const [edition, setEdition] = useState(null);
@@ -82,7 +82,7 @@ export default function Locataires({ data, reload, mois }) {
       {depart && <Depart locataire={depart} mois={mois} onFermer={() => setDepart(null)} reload={reload} />}
       {fiche && (
         <Modal titre={`Fiche — ${fiche.nom_locataire}`} onFermer={() => setFiche(null)}>
-          <FicheLocataire id={fiche.id} mois={mois} />
+          <FicheLocataire id={fiche.id} mois={mois} admin={utilisateur?.role === 'admin'} reload={reload} />
           <div className="actions"><button className="btn" onClick={() => setFiche(null)}>Fermer</button></div>
         </Modal>
       )}
@@ -253,10 +253,21 @@ function Depart({ locataire, mois, onFermer, reload }) {
   );
 }
 
-export function FicheLocataire({ id, mois }) {
+export function FicheLocataire({ id, mois, admin = false, reload }) {
   const [f, setF] = useState(null);
   const [erreur, setErreur] = useState(null);
-  useEffect(() => { api.get(`/api/locataires/${id}?mois=${mois}`).then(setF).catch((e) => setErreur(e.message)); }, [id, mois]);
+  const [tick, setTick] = useState(0);
+  useEffect(() => { api.get(`/api/locataires/${id}?mois=${mois}`).then(setF).catch((e) => setErreur(e.message)); }, [id, mois, tick]);
+
+  const annuler = async (v) => {
+    if (!window.confirm(`Annuler le versement de ${fcfa(v.montant)} F du ${dateFr(v.date_versement)}${v.numero_quittance ? ` (quittance ${v.numero_quittance})` : ''} ?\n\nLa quittance associée sera annulée et l'opération restera tracée dans le journal.`)) return;
+    const motif = window.prompt('Motif de l\'annulation (optionnel) :') || '';
+    try {
+      await api.del(`/api/versements/${v.id}`, { motif });
+      setTick((t) => t + 1);
+      if (reload) reload();
+    } catch (e) { setErreur(e.message); }
+  };
   if (erreur) return <div className="message erreur">{erreur}</div>;
   if (!f) return <p>Chargement…</p>;
   const s = f.situation;
@@ -286,12 +297,15 @@ export function FicheLocataire({ id, mois }) {
                 <td className="num"><b>{fcfa(v.montant)} F</b></td>
                 <td>{TYPES[v.type]} · {v.mode}</td>
                 <td style={{ fontSize: 13 }}>{v.note || ''}</td>
-                <td>{v.numero_quittance && (
-                  <button className="btn petit" title={v.numero_quittance}
-                    onClick={() => api.telecharger('GET', `/api/versements/${v.id}/quittance`)}>
-                    Quittance
-                  </button>
-                )}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  {v.numero_quittance && (
+                    <button className="btn petit" title={v.numero_quittance}
+                      onClick={() => api.telecharger('GET', `/api/versements/${v.id}/quittance`)}>
+                      Quittance
+                    </button>
+                  )}
+                  {admin && <>{' '}<button className="btn petit rouge" title="Annuler ce versement" onClick={() => annuler(v)}>Annuler</button></>}
+                </td>
               </tr>
             ))}
           </tbody>
