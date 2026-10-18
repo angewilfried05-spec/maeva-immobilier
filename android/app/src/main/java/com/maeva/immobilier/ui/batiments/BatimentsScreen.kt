@@ -1,5 +1,6 @@
 package com.maeva.immobilier.ui.batiments
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,12 +30,13 @@ import androidx.compose.ui.unit.dp
 import com.maeva.immobilier.MaevaApp
 import com.maeva.immobilier.data.api.Batiment
 import com.maeva.immobilier.data.api.BatimentBody
+import com.maeva.immobilier.data.api.Unite
 import com.maeva.immobilier.data.api.messageErreur
 import kotlinx.coroutines.launch
 
-/** Gestion des bâtiments : liste, création, édition, suppression (admin/gérant). */
+/** Bâtiments : liste + nombre de portes/libres ; appui → portes du bâtiment. */
 @Composable
-fun BatimentsScreen(app: MaevaApp) {
+fun BatimentsScreen(app: MaevaApp, onOuvrir: (Int) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var rafraichi by remember { mutableStateOf(0) }
     var edition by remember { mutableStateOf<Batiment?>(null) }
@@ -47,6 +49,9 @@ fun BatimentsScreen(app: MaevaApp) {
 
     val batiments by produceState<List<Batiment>?>(initialValue = null, rafraichi) {
         try { value = app.reseau.api().batiments() } catch (_: Exception) { }
+    }
+    val unites by produceState<List<Unite>>(initialValue = emptyList(), rafraichi) {
+        try { value = app.reseau.api().unites() } catch (_: Exception) { }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -63,7 +68,9 @@ fun BatimentsScreen(app: MaevaApp) {
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(liste, key = { it.id }) { b ->
-                    Card(Modifier.fillMaxWidth()) {
+                    val portesDuBatiment = unites.filter { it.batiment_id == b.id }
+                    val libres = portesDuBatiment.count { it.statut == "libre" }
+                    Card(Modifier.fillMaxWidth().clickable { onOuvrir(b.id) }) {
                         Row(
                             Modifier.padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -71,10 +78,13 @@ fun BatimentsScreen(app: MaevaApp) {
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(b.nom, fontWeight = FontWeight.SemiBold)
-                                b.adresse?.let {
-                                    Text(it, style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                                }
+                                Text(
+                                    "${portesDuBatiment.size} porte(s)" +
+                                        if (libres > 0) " · $libres libre(s)" else "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (libres > 0) MaterialTheme.colorScheme.tertiary
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                )
                             }
                             if (gestion) {
                                 Row {

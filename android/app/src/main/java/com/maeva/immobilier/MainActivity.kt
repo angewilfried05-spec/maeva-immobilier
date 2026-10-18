@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.maeva.immobilier.ui.batiments.BatimentDetailScreen
 import com.maeva.immobilier.ui.batiments.BatimentsScreen
 import com.maeva.immobilier.ui.connexion.ConnexionScreen
 import com.maeva.immobilier.ui.dashboard.DashboardScreen
@@ -38,7 +39,6 @@ import com.maeva.immobilier.ui.locataires.FicheLocataireScreen
 import com.maeva.immobilier.ui.locataires.LocataireFormScreen
 import com.maeva.immobilier.ui.locataires.LocatairesScreen
 import com.maeva.immobilier.ui.portes.PorteDetailScreen
-import com.maeva.immobilier.ui.portes.PortesScreen
 import com.maeva.immobilier.ui.relances.RelancesScreen
 import com.maeva.immobilier.ui.theme.MaevaTheme
 import kotlinx.coroutines.flow.map
@@ -55,7 +55,7 @@ private val ONGLETS = listOf(
     Triple("dashboard", "Accueil", Icons.Default.Home),
     Triple("encaisser", "Encaisser", Icons.Default.ShoppingCart),
     Triple("locataires", "Locataires", Icons.Default.Person),
-    Triple("portes", "Portes", Icons.Default.List),
+    Triple("batiments", "Bâtiments", Icons.Default.Apartment),
     Triple("relances", "Relances", Icons.Default.MailOutline),
 )
 
@@ -134,11 +134,14 @@ fun Racine() {
                             onRetour = { nav.popBackStack() },
                         )
                     }
-                    composable("portes") {
-                        PortesScreen(
+                    composable("batiments") {
+                        BatimentsScreen(app, onOuvrir = { id -> nav.navigate("batiment/$id") })
+                    }
+                    composable("batiment/{id}") { entree ->
+                        BatimentDetailScreen(
                             app,
-                            onOuvrir = { id -> nav.navigate("porte/$id") },
-                            onBatiments = { nav.navigate("batiments") },
+                            batimentId = entree.arguments?.getString("id")?.toIntOrNull() ?: 0,
+                            onOuvrirPorte = { id -> nav.navigate("porte/$id") },
                         )
                     }
                     composable("porte/{id}") { entree ->
@@ -149,7 +152,6 @@ fun Racine() {
                             onSupprimee = { nav.popBackStack() },
                         )
                     }
-                    composable("batiments") { BatimentsScreen(app) }
                     composable("relances") { RelancesScreen(app) }
                     composable("historique") { HistoriqueScreen(app) }
                 }
