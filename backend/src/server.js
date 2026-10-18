@@ -20,6 +20,7 @@ const auditRoutes = require('./routes/audit');
 const unitesRoutes = require('./routes/unites');
 const relancesRoutes = require('./routes/relances');
 const whatsappRoutes = require('./routes/whatsapp');
+const telechargementsRoutes = require('./routes/telechargements');
 const { demarrerSiConfigure } = require('./services/whatsapp');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 const { demarrerNotifications } = require('./services/notifications');
@@ -75,6 +76,7 @@ const ROUTES = [
   ['/catalogue', catalogueRoutes],
   ['/sauvegardes', sauvegardesRoutes],
   ['/whatsapp', whatsappRoutes],
+  ['/telechargements', telechargementsRoutes],
 ];
 for (const [chemin, r] of ROUTES) {
   app.use('/api' + chemin, r);

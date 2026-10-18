@@ -17,6 +17,7 @@ import ChangerMotDePasse from './pages/ChangerMotDePasse.jsx';
 import Devis from './pages/Devis.jsx';
 import EditeurDevis from './pages/EditeurDevis.jsx';
 import CatalogueArticles from './pages/CatalogueArticles.jsx';
+import Telechargements from './pages/Telechargements.jsx';
 import Sauvegardes from './pages/Sauvegardes.jsx';
 import Connexion, { sessionSouvenirValide, effacerSouvenir } from './pages/Connexion.jsx';
 import { moisCourant } from './utils/format.js';
@@ -38,6 +39,7 @@ const PAGES = [
   ['import', 'Importer Excel'],
   ['devis', 'Devis BTP'],
   ['catalogue', 'Catalogue prix'],
+  ['telechargements', 'Télécharger les apps'],
 ];
 
 export default function App() {
@@ -151,6 +153,7 @@ export default function App() {
           <Route path="/devis/nouveau" element={<EditeurDevis {...props} devisId={null} />} />
           <Route path="/devis/:devisId" element={<EditeurDevisRoute {...props} />} />
           <Route path="/catalogue" element={<CatalogueArticles {...props} />} />
+          <Route path="/telechargements" element={<Telechargements />} />
           {estAdmin && <Route path="/utilisateurs" element={<Utilisateurs {...props} />} />}
           {estAdmin && <Route path="/whatsapp" element={<WhatsApp {...props} />} />}
           {estAdmin && <Route path="/sauvegardes" element={<Sauvegardes {...props} onRestaure={deconnecter} />} />}
