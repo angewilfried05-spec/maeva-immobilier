@@ -14,6 +14,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,9 +36,11 @@ private fun sansAccent(s: String): String =
 
 /** Liste des locataires avec recherche et solde ; appui → fiche détaillée. */
 @Composable
-fun LocatairesScreen(app: MaevaApp, onOuvrir: (Int) -> Unit) {
+fun LocatairesScreen(app: MaevaApp, onOuvrir: (Int) -> Unit, onNouveau: () -> Unit = {}) {
     val mois = LocalDate.now().toString().substring(0, 7)
     var recherche by remember { mutableStateOf("") }
+    val role by produceState<String?>(initialValue = null) { value = app.session.role() }
+    val gestion = role == "admin" || role == "gerant"
 
     val dash by produceState<Dashboard?>(initialValue = null) {
         try { value = app.reseau.api().dashboard(mois) } catch (_: Exception) { }
@@ -53,7 +56,11 @@ fun LocatairesScreen(app: MaevaApp, onOuvrir: (Int) -> Unit) {
         ?.sortedBy { it.nom_locataire } ?: emptyList()
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Locataires", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("Locataires", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (gestion) TextButton(onClick = onNouveau) { Text("+ Nouveau") }
+        }
         OutlinedTextField(
             value = recherche, onValueChange = { recherche = it },
             label = { Text("Rechercher (nom ou porte)") }, singleLine = true,

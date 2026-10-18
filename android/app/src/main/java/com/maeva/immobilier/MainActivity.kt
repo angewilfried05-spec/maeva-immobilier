@@ -23,15 +23,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.maeva.immobilier.ui.batiments.BatimentsScreen
 import com.maeva.immobilier.ui.connexion.ConnexionScreen
 import com.maeva.immobilier.ui.dashboard.DashboardScreen
 import com.maeva.immobilier.ui.encaisser.EncaisserScreen
 import com.maeva.immobilier.ui.historique.HistoriqueScreen
 import com.maeva.immobilier.ui.locataires.FicheLocataireScreen
+import com.maeva.immobilier.ui.locataires.LocataireFormScreen
 import com.maeva.immobilier.ui.locataires.LocatairesScreen
 import com.maeva.immobilier.ui.portes.PorteDetailScreen
 import com.maeva.immobilier.ui.portes.PortesScreen
@@ -102,17 +106,50 @@ fun Racine() {
                     }
                     composable("encaisser") { EncaisserScreen(app) }
                     composable("locataires") {
-                        LocatairesScreen(app) { id -> nav.navigate("locataire/$id") }
+                        LocatairesScreen(
+                            app,
+                            onOuvrir = { id -> nav.navigate("locataire/$id") },
+                            onNouveau = { nav.navigate("locataire/nouveau") },
+                        )
+                    }
+                    composable("locataire/nouveau?unite={unite}",
+                        arguments = listOf(navArgument("unite") { type = NavType.StringType; nullable = true })
+                    ) { entree ->
+                        LocataireFormScreen(
+                            app,
+                            locataireId = null,
+                            uniteIdPrechoisi = entree.arguments?.getString("unite")?.toIntOrNull(),
+                            onRetour = { nav.popBackStack() },
+                        )
                     }
                     composable("locataire/{id}") { entree ->
-                        FicheLocataireScreen(app, entree.arguments?.getString("id")?.toIntOrNull() ?: 0)
+                        val id = entree.arguments?.getString("id")?.toIntOrNull() ?: 0
+                        FicheLocataireScreen(app, id, onModifier = { nav.navigate("locataire/$id/edit") })
+                    }
+                    composable("locataire/{id}/edit") { entree ->
+                        LocataireFormScreen(
+                            app,
+                            locataireId = entree.arguments?.getString("id")?.toIntOrNull(),
+                            uniteIdPrechoisi = null,
+                            onRetour = { nav.popBackStack() },
+                        )
                     }
                     composable("portes") {
-                        PortesScreen(app) { id -> nav.navigate("porte/$id") }
+                        PortesScreen(
+                            app,
+                            onOuvrir = { id -> nav.navigate("porte/$id") },
+                            onBatiments = { nav.navigate("batiments") },
+                        )
                     }
                     composable("porte/{id}") { entree ->
-                        PorteDetailScreen(app, entree.arguments?.getString("id")?.toIntOrNull() ?: 0)
+                        PorteDetailScreen(
+                            app,
+                            uniteId = entree.arguments?.getString("id")?.toIntOrNull() ?: 0,
+                            onOccuper = { uid -> nav.navigate("locataire/nouveau?unite=$uid") },
+                            onSupprimee = { nav.popBackStack() },
+                        )
                     }
+                    composable("batiments") { BatimentsScreen(app) }
                     composable("relances") { RelancesScreen(app) }
                     composable("historique") { HistoriqueScreen(app) }
                 }

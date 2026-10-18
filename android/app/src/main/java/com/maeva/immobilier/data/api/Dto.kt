@@ -41,7 +41,36 @@ data class Situation(
     val avance: Int,
 )
 
-data class Batiment(val id: Int, val nom: String)
+data class Batiment(val id: Int, val nom: String, val adresse: String? = null, val note: String? = null)
+data class BatimentBody(val nom: String, val adresse: String? = null, val note: String? = null)
+
+// Gestion des portes et locataires
+data class UniteBody(val batiment_id: Int, val porte: String? = null, val loyer_base: Int? = null)
+
+data class LocataireBody(
+    val unite_id: Int? = null,
+    val batiment_id: Int? = null,
+    val numero_porte: String? = null,
+    val nom_locataire: String,
+    val loyer_mensuel: Int? = null,
+    val date_entree: String? = null,
+    val telephone: String? = null,
+    val caution: Int? = null,
+    val avance: Int? = null,
+    val solde_initial: Int? = null,
+    val note: String? = null,
+    val statut: String? = null,
+    val debut_suivi: String? = null,
+    val loyer_a_partir_de: String? = null,
+)
+
+data class DepartBody(
+    val mois_sortie: String,
+    val retenue: Int = 0,
+    val remboursement: Int = 0,
+    val depense_remboursement: Boolean = false,
+    val porte_vide: Boolean = true,
+)
 
 data class Alertes(
     val mois_cloture: Boolean = false,
