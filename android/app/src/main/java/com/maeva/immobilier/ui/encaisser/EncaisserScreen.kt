@@ -76,12 +76,12 @@ fun EncaisserScreen(app: MaevaApp) {
         try { value = app.reseau.api().dashboard(mois) } catch (_: Exception) { }
     }
     val actifs = dash?.locataires?.filter { it.statut != "Vide" } ?: emptyList()
-    val resultats = if (recherche.isBlank()) emptyList()
+    val resultats = (if (recherche.isBlank()) actifs
         else actifs.filter {
             sansAccent("${it.nom_locataire} ${it.numero_porte ?: ""}").contains(sansAccent(recherche))
-        }.take(8)
+        }).sortedBy { it.nom_locataire }
 
-    Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("Encaisser", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text("Mois comptable : ${moisFr(mois)}", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(12.dp))
@@ -111,7 +111,7 @@ fun EncaisserScreen(app: MaevaApp) {
                 singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(6.dp))
-            LazyColumn(Modifier.height(320.dp)) {
+            LazyColumn(Modifier.weight(1f)) {
                 items(resultats) { l ->
                     val sit = dash?.situations?.get(l.id.toString())
                     Row(
@@ -145,7 +145,7 @@ fun EncaisserScreen(app: MaevaApp) {
         } else {
             val l = choisi!!
             Card {
-                Column(Modifier.padding(16.dp)) {
+                Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(l.nom_locataire, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         TextButton(onClick = { choisi = null; cle = null }) { Text("Changer") }
