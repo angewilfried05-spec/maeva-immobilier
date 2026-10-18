@@ -1,9 +1,20 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
+
+// Signature release : credentials dans local.properties (jamais dans Git).
+// Le keystore vit dans android/keystore/ (ignoré) — le perdre empêche les mises à jour.
+val propsLocales = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(FileInputStream(f))
+}
+val signaturePrete = propsLocales.getProperty("maeva.storeFile") != null
 
 android {
     namespace = "com.maeva.immobilier"
@@ -17,10 +28,22 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        if (signaturePrete) {
+            create("release") {
+                storeFile = rootProject.file(propsLocales.getProperty("maeva.storeFile"))
+                storePassword = propsLocales.getProperty("maeva.storePassword")
+                keyAlias = propsLocales.getProperty("maeva.keyAlias")
+                keyPassword = propsLocales.getProperty("maeva.keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (signaturePrete) signingConfig = signingConfigs.getByName("release")
         }
     }
 
