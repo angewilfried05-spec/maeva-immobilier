@@ -50,6 +50,17 @@ Le backend est chargé dans le process Electron : toute modification backend né
   éventuellement en dépense ; option de recréer la porte vide.
 - Porte vide qui redevient occupée : nouveau compte à partir du mois d'entrée.
 - L'ancienne table `paiements` est conservée mais n'est plus utilisée.
+- **Unités** (`unites`) : la porte physique, propriétaire des contrats successifs ; chaque ligne
+  `locataires` (= contrat d'occupation) pointe sur `unite_id`. Jamais deux contrats actifs sur
+  la même unité. `services/unites.js` → `unitePour(client, batimentId, porte)` : trouve ou crée.
+- **Clôture mensuelle** (`clotures`) : `POST /api/resumes/:mois/cloturer` (admin, gerant) fige
+  le mois — toute écriture dessus (versement, dépense, note, remis, départ, import, révision de
+  loyer, suppression liée) renvoie 409 `MOIS_CLOTURE`. `decloturer` = admin seul, journalisé.
+  Garde centralisée : `services/cloture.js` → `refuserSiCloture(res, mois)` AVANT toute écriture
+  (jamais de res.* dans une transaction). Un mois clôturé n'est jamais recalculé.
+- **Relances** : `GET /api/relances?mois=` → débiteurs + liens `wa.me`/`sms:` pré-remplis.
+- Scénario de bout en bout : `backend/scripts/scenario-p2.js` (nécessite un backend lancé sur 4002
+  contre une copie ; `backend/scripts/reset-mdp-test.js` pose des mots de passe de test).
 
 ## API v1 (contrat pour les clients, dont Android/Kotlin)
 

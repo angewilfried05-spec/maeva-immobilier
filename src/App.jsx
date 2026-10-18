@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Dashboard from './pages/Dashboard.jsx';
+import Encaisser from './pages/Encaisser.jsx';
 import SaisieLoyers from './pages/SaisieLoyers.jsx';
+import Relances from './pages/Relances.jsx';
 import Locataires from './pages/Locataires.jsx';
 import Batiments from './pages/Batiments.jsx';
 import Depenses from './pages/Depenses.jsx';
@@ -20,7 +22,9 @@ import logo from './assets/logo.png';
 
 const PAGES = [
   ['dashboard', 'Tableau de bord'],
+  ['encaisser', 'Encaisser'],
   ['loyers', 'Saisie des loyers'],
+  ['relances', 'Relances'],
   ['locataires', 'Locataires'],
   ['batiments', 'Bâtiments'],
   ['depenses', 'Dépenses'],
@@ -105,7 +109,9 @@ export default function App() {
       </nav>
       <main className="contenu">
         {page === 'dashboard' && <Dashboard {...props} />}
+        {page === 'encaisser' && <Encaisser {...props} />}
         {page === 'loyers' && <SaisieLoyers {...props} />}
+        {page === 'relances' && <Relances {...props} />}
         {page === 'locataires' && <Locataires {...props} />}
         {page === 'batiments' && <Batiments {...props} />}
         {page === 'depenses' && <Depenses {...props} />}

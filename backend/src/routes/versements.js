@@ -6,6 +6,7 @@ const { recalculerResume } = require('../services/resume');
 const { MOIS_VALIDE, ajouterVersement } = require('../services/loyers');
 const { texteOuNull } = require('../utils/fusion');
 const { journal } = require('../services/journal');
+const { refuserSiCloture } = require('../services/cloture');
 const { genererQuittancePdf, dossierTemporaire } = require('../services/quittances');
 const { envoyerEtSupprimer } = require('../utils/envoi-fichier');
 
@@ -68,6 +69,7 @@ router.post('/', requireAuth, SAISIE, async (req, res) => {
   if (!locataire_id || !MOIS_VALIDE.test(String(mois || ''))) return res.status(400).json({ message: 'Locataire et mois requis' });
   if (!(m > 0)) return res.status(400).json({ message: 'Le montant doit être supérieur à 0' });
   try {
+    if (await refuserSiCloture(res, mois)) return;
     const loc = await pool.query('SELECT statut FROM locataires WHERE id = $1', [Number(locataire_id)]);
     if (!loc.rows[0]) return res.status(404).json({ message: 'Locataire introuvable' });
     if (loc.rows[0].statut === 'Vide') return res.status(400).json({ message: 'Porte vide : aucun loyer à encaisser' });
@@ -91,6 +93,7 @@ router.put('/note', requireAuth, SAISIE, async (req, res) => {
   const note = texteOuNull(req.body?.note);
   if (!locataire_id || !MOIS_VALIDE.test(String(mois || ''))) return res.status(400).json({ message: 'Locataire et mois requis' });
   try {
+    if (await refuserSiCloture(res, mois)) return;
     if (note) {
       await pool.query(
         `INSERT INTO notes_loyers (locataire_id, mois, note) VALUES ($1, $2, $3)
@@ -107,6 +110,9 @@ router.put('/note', requireAuth, SAISIE, async (req, res) => {
 // DELETE /api/versements/:id
 router.delete('/:id', requireAuth, SAISIE, async (req, res) => {
   try {
+    const ex = await pool.query('SELECT mois FROM versements WHERE id = $1', [Number(req.params.id)]);
+    if (!ex.rows[0]) return res.status(404).json({ message: 'Versement introuvable' });
+    if (await refuserSiCloture(res, ex.rows[0].mois)) return;
     const r = await pool.query('DELETE FROM versements WHERE id = $1 RETURNING *', [Number(req.params.id)]);
     if (!r.rows[0]) return res.status(404).json({ message: 'Versement introuvable' });
     await recalculerResume(r.rows[0].mois);

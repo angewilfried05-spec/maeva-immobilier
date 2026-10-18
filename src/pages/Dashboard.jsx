@@ -39,6 +39,28 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
       </div>
       {message && <div className={`message ${message.type}`}>{message.txt}</div>}
 
+      {data.alertes?.mois_cloture && (
+        <div className="message succes">Le mois {moisLabel(mois)} est <b>clôturé</b> : les écritures sont figées.</div>
+      )}
+      {(data.alertes?.portes_libres > 0 || data.en_retard.length > 0) && (
+        <div className="cartes">
+          {data.alertes?.portes_libres > 0 && (
+            <div className="carte orange">
+              <div className="libelle">Portes libres</div>
+              <div className="valeur">{data.alertes.portes_libres}</div>
+              <button className="btn petit" style={{ marginTop: 8 }} onClick={() => setPage('batiments')}>Voir les unités</button>
+            </div>
+          )}
+          {data.en_retard.length > 0 && (
+            <div className="carte rouge">
+              <div className="libelle">Locataires à relancer</div>
+              <div className="valeur">{data.en_retard.length}</div>
+              <button className="btn petit" style={{ marginTop: 8 }} onClick={() => setPage('relances')}>Relancer</button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="cartes">
         <div className="carte"><div className="libelle">Loyers attendus</div><div className="valeur">{fcfa(stats.attendu)} F</div></div>
         <div className="carte vert"><div className="libelle">Loyers perçus</div><div className="valeur">{fcfa(stats.percu)} F</div></div>

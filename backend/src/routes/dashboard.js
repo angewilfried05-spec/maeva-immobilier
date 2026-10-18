@@ -10,7 +10,12 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
   const mois = req.query.mois || moisCourant();
   try {
-    const resume = await recalculerResume(mois);
+    const moisClot = (await pool.query(
+      'SELECT 1 FROM clotures WHERE mois = $1 AND decloture_le IS NULL', [mois]
+    ).catch(() => ({ rows: [] }))).rows.length > 0;
+    const resume = moisClot
+      ? (await pool.query('SELECT * FROM resumes WHERE mois = $1', [mois])).rows[0] || null
+      : await recalculerResume(mois);
     const { locataires, situations } = await chargerSituations(mois);
     const batiments = await pool.query('SELECT * FROM batiments ORDER BY id');
     const versements = await pool.query('SELECT * FROM versements WHERE mois = $1 ORDER BY date_versement, id', [mois]);
@@ -35,6 +40,11 @@ router.get('/', requireAuth, async (req, res) => {
       .map((l) => ({ ...l, situation: situations[l.id] }))
       .sort((a, b) => b.situation.dette - a.situation.dette);
 
+    const { rows: vp } = await pool.query(
+      `SELECT count(*)::int AS libres FROM unites u
+       WHERE NOT EXISTS (SELECT 1 FROM locataires l WHERE l.unite_id = u.id AND l.statut = 'Actif')`
+    ).catch(() => ({ rows: [{ libres: 0 }] }));
+
     res.json({
       mois,
       batiments: batiments.rows,
@@ -47,6 +57,12 @@ router.get('/', requireAuth, async (req, res) => {
       par_batiment: parBatiment,
       en_retard: enRetard,
       cautions_detenues: locataires.filter((l) => l.statut !== 'Parti').reduce((s, l) => s + (l.caution || 0), 0),
+      alertes: {
+        mois_cloture: moisClot,
+        portes_libres: vp[0].libres,
+        en_retard: enRetard.length,
+        dette_totale: enRetard.reduce((s, l) => s + l.situation.dette, 0),
+      },
     });
   } catch (e) {
     console.error('dashboard:', e.message);

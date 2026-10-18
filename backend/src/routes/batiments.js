@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { fusionner, texteOuNull, majuscules } = require('../utils/fusion');
+const { journal } = require('../services/journal');
 
 const router = express.Router();
 
@@ -43,11 +44,21 @@ router.put('/:id', requireAuth, requireRole('admin', 'gerant'), async (req, res)
 });
 
 // DELETE /api/batiments/:id  (admin, gerant)
+// La suppression supprime en cascade unités, contrats et versements : impossible
+// si le bâtiment a des écritures sur un mois clôturé.
 router.delete('/:id', requireAuth, requireRole('admin', 'gerant'), async (req, res) => {
   const id = Number(req.params.id);
   try {
-    const r = await pool.query('DELETE FROM batiments WHERE id = $1', [id]);
+    const clot = await pool.query(
+      `SELECT 1 FROM versements v
+       JOIN locataires l ON l.id = v.locataire_id
+       JOIN clotures c ON c.mois = v.mois AND c.decloture_le IS NULL
+       WHERE l.batiment_id = $1 LIMIT 1`, [id]
+    );
+    if (clot.rows[0]) return res.status(409).json({ message: 'Ce bâtiment a des versements sur un mois clôturé', code: 'MOIS_CLOTURE' });
+    const r = await pool.query('DELETE FROM batiments WHERE id = $1 RETURNING nom', [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: 'Bâtiment introuvable' });
+    await journal(null, req, 'batiment.supprime', 'batiment', id, { nom: r.rows[0].nom });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

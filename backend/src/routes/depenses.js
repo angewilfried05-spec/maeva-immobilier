@@ -4,6 +4,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { recalculerResume } = require('../services/resume');
 const { fusionner, texteOuNull, majuscules, entier, nombre } = require('../utils/fusion');
 const { journal } = require('../services/journal');
+const { refuserSiCloture } = require('../services/cloture');
 
 const router = express.Router();
 const CATEGORIES = ['Salaires', 'Charges', 'Travaux', 'Remboursements', 'Autre'];
@@ -41,6 +42,7 @@ router.post('/', requireAuth, requireRole('admin', 'gerant', 'comptable'), async
   const q = Number(quantite) || 0;
   const u = Number(montant_unitaire) || 0;
   try {
+    if (await refuserSiCloture(res, mois)) return;
     const { rows } = await pool.query(
       `INSERT INTO depenses (mois, designation, categorie, quantite, montant_unitaire, montant_total, beneficiaire, note)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
@@ -59,6 +61,7 @@ router.put('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), asy
   try {
     const ex = await pool.query('SELECT * FROM depenses WHERE id = $1', [id]);
     if (!ex.rows[0]) return res.status(404).json({ message: 'Dépense introuvable' });
+    if (await refuserSiCloture(res, ex.rows[0].mois)) return;
     const v = fusionner(ex.rows[0], req.body || {}, {
       designation: majuscules, categorie: texteOuNull, quantite: nombre, montant_unitaire: entier,
       beneficiaire: texteOuNull, note: texteOuNull,
@@ -83,8 +86,10 @@ router.put('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), asy
 router.delete('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), async (req, res) => {
   const id = Number(req.params.id);
   try {
+    const ex = await pool.query('SELECT mois FROM depenses WHERE id = $1', [id]);
+    if (!ex.rows[0]) return res.status(404).json({ message: 'Dépense introuvable' });
+    if (await refuserSiCloture(res, ex.rows[0].mois)) return;
     const r = await pool.query('DELETE FROM depenses WHERE id = $1 RETURNING mois, designation, montant_total', [id]);
-    if (r.rowCount === 0) return res.status(404).json({ message: 'Dépense introuvable' });
     await recalculerResume(r.rows[0].mois);
     await journal(null, req, 'depense.supprime', 'depense', id,
       { mois: r.rows[0].mois, designation: r.rows[0].designation, montant: r.rows[0].montant_total });

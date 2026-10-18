@@ -8,9 +8,9 @@ const pool = require('../config/db');
 // Ordre parents -> enfants (utilisé pour la restauration)
 // jetons_refresh volontairement absent : restaurer révoque les sessions (TRUNCATE CASCADE).
 const TABLES = [
-  'utilisateurs', 'journal_audit', 'batiments', 'locataires', 'loyers_historique', 'paiements',
+  'utilisateurs', 'journal_audit', 'batiments', 'unites', 'locataires', 'loyers_historique', 'paiements',
   'versements', 'quittances', 'quittances_compteur', 'notes_loyers',
-  'depenses', 'resumes', 'config', 'catalogue_articles', 'devis', 'lignes_devis', 'devis_compteur',
+  'depenses', 'resumes', 'clotures', 'config', 'catalogue_articles', 'devis', 'lignes_devis', 'devis_compteur',
 ];
 // Tables obligatoires dans un fichier de sauvegarde (les autres peuvent manquer : anciennes versions)
 const TABLES_REQUISES = ['utilisateurs', 'batiments', 'locataires', 'depenses'];
@@ -135,6 +135,10 @@ async function restaurer(contenu) {
     // Sauvegarde antérieure aux quittances : on numérote les versements restaurés
     if (tables.includes('quittances')) {
       await require('../migrations/006_api_v1').completerQuittances(client);
+    }
+    // Sauvegarde antérieure aux unités : on recrée les portes et on relie les contrats
+    if (tables.includes('unites')) {
+      await require('../migrations/007_unites_clotures').convertir(client);
     }
     await client.query('COMMIT');
   } catch (e) {

@@ -8,6 +8,8 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { parseFile } = require('../services/parser-import');
 const { recalculerResume } = require('../services/resume');
 const { majLoyer, ajouterVersement } = require('../services/loyers');
+const { moisCloture } = require('../services/cloture');
+const { unitePour } = require('../services/unites');
 
 const router = express.Router();
 const upload = multer({ dest: path.join(os.tmpdir(), 'maeva-import') });
@@ -39,6 +41,9 @@ router.post('/commit', requireAuth, requireRole('admin', 'gerant'), async (req, 
   const apercu = req.body;
   const { mois, batiments, depenses, remis_au_boss } = apercu;
   if (!mois || !Array.isArray(batiments)) return res.status(400).json({ message: 'Aperçu invalide' });
+  if (await moisCloture(mois)) {
+    return res.status(409).json({ message: `Le mois ${mois} est clôturé : import impossible`, code: 'MOIS_CLOTURE' });
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -66,6 +71,10 @@ router.post('/commit', requireAuth, requireRole('admin', 'gerant'), async (req, 
         if (exL.rows[0]) {
           locId = exL.rows[0].id;
           const ex = (await client.query('SELECT * FROM locataires WHERE id = $1', [locId])).rows[0];
+          if (!ex.unite_id) {
+            await client.query('UPDATE locataires SET unite_id = $1 WHERE id = $2',
+              [await unitePour(client, batId, ex.numero_porte, ex.loyer_mensuel), locId]);
+          }
           // Seule transition appliquée par l'import : porte vide -> occupée (nouveau compte à partir de ce mois).
           // Un départ se fait avec le bouton « Départ », pas par import.
           const devientOccupe = ex.statut === 'Vide' && statut === 'Actif';
@@ -79,11 +88,12 @@ router.post('/commit', requireAuth, requireRole('admin', 'gerant'), async (req, 
           );
           if (devientOccupe || loyer !== ex.loyer_mensuel) await majLoyer(client, locId, mois, loyer);
         } else {
+          const uniteId = await unitePour(client, batId, l.numero_porte, loyer);
           const insL = await client.query(
-            `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, statut, note, arrieres_initial, debut_suivi, solde_initial)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+            `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, statut, note, arrieres_initial, debut_suivi, solde_initial, unite_id)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
             [batId, l.numero_porte, l.nom_locataire, loyer, statut, l.note, Number(l.arrieres_initial) || 0,
-             actif ? mois : null, actif ? soldeInitial : 0]
+             actif ? mois : null, actif ? soldeInitial : 0, uniteId]
           );
           locId = insL.rows[0].id;
           await majLoyer(client, locId, mois, loyer);

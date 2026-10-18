@@ -2,12 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { fcfa, moisLabel } from '../utils/format.js';
 import { api } from '../utils/api.js';
 
-export default function Historique() {
+export default function Historique({ utilisateur }) {
   const [resumes, setResumes] = useState(null);
   const [message, setMessage] = useState(null);
 
   const reload = () => api.get('/api/resumes').then(setResumes).catch((e) => setMessage(e.message));
   useEffect(() => { reload(); }, []);
+  const peutCloturer = utilisateur?.role === 'admin' || utilisateur?.role === 'gerant';
+
+  const cloturer = async (mois) => {
+    if (!window.confirm(`Clôturer ${moisLabel(mois)} ?\nLe mois sera figé : versements, dépenses et import ne pourront plus le modifier.`)) return;
+    try { await api.post(`/api/resumes/${mois}/cloturer`); reload(); }
+    catch (e) { setMessage(e.message); }
+  };
+  const decloturer = async (mois) => {
+    if (!window.confirm(`Déclôturer ${moisLabel(mois)} ? Les écritures seront à nouveau possibles.`)) return;
+    try { await api.post(`/api/resumes/${mois}/decloturer`); reload(); }
+    catch (e) { setMessage(e.message); }
+  };
 
   const exporterExcel = async (mois) => {
     try { const nom = await api.telecharger('POST', '/api/export/rapport', { mois }); setMessage(`Rapport Excel téléchargé : ${nom}`); }
@@ -26,7 +38,7 @@ export default function Historique() {
       ) : (
         <table className="tableau">
           <thead>
-            <tr><th>Mois</th><th className="num">Attendu</th><th className="num">Perçu</th><th className="num">Taux</th><th className="num">Dépenses</th><th className="num">Solde</th><th className="num">Remis au Boss</th><th></th></tr>
+            <tr><th>Mois</th><th className="num">Attendu</th><th className="num">Perçu</th><th className="num">Taux</th><th className="num">Dépenses</th><th className="num">Solde</th><th className="num">Remis au Boss</th><th>Statut</th><th></th></tr>
           </thead>
           <tbody>
             {list.map((r, i) => {
@@ -51,7 +63,17 @@ export default function Historique() {
                   <td className="num">{fcfa(r.total_depenses)} F</td>
                   <td className="num" style={{ color: Number(r.solde) >= 0 ? 'inherit' : 'var(--rouge)', fontWeight: 700 }}>{fcfa(r.solde)} F</td>
                   <td className="num">{fcfa(r.montant_remis_au_proprietaire)} F</td>
-                  <td><button className="btn petit" onClick={() => exporterExcel(r.mois)}>Excel</button></td>
+                  <td>
+                    {r.cloture_le
+                      ? <span className="badge ok">Clôturé</span>
+                      : <span className="badge vide">Ouvert</span>}
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <button className="btn petit" onClick={() => exporterExcel(r.mois)}>Excel</button>{' '}
+                    {peutCloturer && (r.cloture_le
+                      ? <button className="btn petit gris" onClick={() => decloturer(r.mois)}>Déclôturer</button>
+                      : <button className="btn petit vert" onClick={() => cloturer(r.mois)}>Clôturer</button>)}
+                  </td>
                 </tr>
               );
             })}

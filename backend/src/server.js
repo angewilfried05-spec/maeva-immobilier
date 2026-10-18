@@ -17,6 +17,8 @@ const devisRoutes = require('./routes/devis');
 const catalogueRoutes = require('./routes/catalogue');
 const sauvegardesRoutes = require('./routes/sauvegardes');
 const auditRoutes = require('./routes/audit');
+const unitesRoutes = require('./routes/unites');
+const relancesRoutes = require('./routes/relances');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 
 const app = express();
@@ -48,12 +50,18 @@ app.get('/api/v1', (_req, res) => res.json({ version: '1', documentation: '/api/
 app.get('/api/v1/openapi.json', (_req, res) => res.sendFile(path.join(__dirname, 'openapi.json')));
 app.use('/api/v1/audit', auditRoutes);
 
+// Vocabulaire v1 : les lignes « locataires » de la base sont les contrats
+// d'occupation — /api/v1/contrats expose donc le même router.
+app.use('/api/v1/contrats', locatairesRoutes);
+
 // Toutes les ressources existent sous /api (clients actuels) et /api/v1 (contrat stable).
 const ROUTES = [
   ['/auth', authRoutes],
   ['/utilisateurs', utilisateursRoutes],
   ['/batiments', batimentsRoutes],
+  ['/unites', unitesRoutes],
   ['/locataires', locatairesRoutes],
+  ['/relances', relancesRoutes],
   ['/versements', versementsRoutes],
   ['/depenses', depensesRoutes],
   ['/resumes', resumesRoutes],

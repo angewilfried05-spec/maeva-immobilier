@@ -7,6 +7,8 @@ const { chargerSituations, moisCourant, moisSuivant } = require('../services/sit
 const { recalculerResume } = require('../services/resume');
 const { MOIS_VALIDE, moisDe, majLoyer, ajouterVersement } = require('../services/loyers');
 const { journal } = require('../services/journal');
+const { refuserSiCloture } = require('../services/cloture');
+const { unitePour } = require('../services/unites');
 
 const router = express.Router();
 const GESTION = requireRole('admin', 'gerant');
@@ -45,7 +47,11 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { locataires, situations } = await chargerSituations(mois, [id]);
     if (!locataires[0]) return res.status(404).json({ message: 'Locataire introuvable' });
-    const versements = await pool.query('SELECT * FROM versements WHERE locataire_id = $1 ORDER BY mois DESC, date_versement DESC, id DESC', [id]);
+    const versements = await pool.query(
+      `SELECT v.*, q.numero AS numero_quittance FROM versements v
+       LEFT JOIN quittances q ON q.versement_id = v.id
+       WHERE v.locataire_id = $1 ORDER BY v.mois DESC, v.date_versement DESC, v.id DESC`, [id]
+    );
     const loyers = await pool.query('SELECT a_partir_de, montant FROM loyers_historique WHERE locataire_id = $1 ORDER BY a_partir_de DESC', [id]);
     const notes = await pool.query('SELECT mois, note FROM notes_loyers WHERE locataire_id = $1 ORDER BY mois DESC', [id]);
     res.json({ ...locataires[0], situation: situations[id], versements: versements.rows, loyers: loyers.rows, notes: notes.rows });
@@ -65,33 +71,83 @@ router.get('/:id/depart-apercu', requireAuth, async (req, res) => {
 });
 
 // POST /api/locataires  (admin, gerant) — caution / avance optionnelles
+//   unite_id : occuper une porte existante (réutilise sa ligne « Vide » si présente)
 router.post('/', requireAuth, GESTION, async (req, res) => {
   const b = req.body || {};
   const nom = texteOuNull(b.nom_locataire);
-  if (!b.batiment_id || !nom) return res.status(400).json({ message: 'Bâtiment et nom requis' });
-  const statut = b.statut === 'Vide' ? 'Vide' : 'Actif';
-  const loyer = entier(b.loyer_mensuel);
-  const dateEntree = texteOuNull(b.date_entree);
-  const debut = statut === 'Actif' ? debutSuivi(b, dateEntree) : null;
+  let uniteId = b.unite_id ? Number(b.unite_id) : null;
   try {
-    const loc = await transaction(async (client) => {
-      const { rows } = await client.query(
-        `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, date_entree, statut, telephone, note,
-                                 debut_suivi, solde_initial, caution)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-        [Number(b.batiment_id), texteOuNull(b.numero_porte), nom, loyer, dateEntree, statut,
-         texteOuNull(b.telephone), texteOuNull(b.note), debut,
-         statut === 'Actif' ? entier(b.solde_initial) : 0, statut === 'Actif' ? entier(b.caution) : 0]
+    // Résolution de l'unité : le bâtiment et la porte viennent d'elle
+    let unite = null;
+    if (uniteId) {
+      unite = (await pool.query('SELECT * FROM unites WHERE id = $1', [uniteId])).rows[0];
+      if (!unite) return res.status(404).json({ message: 'Unité introuvable' });
+      const occupee = await pool.query(
+        "SELECT 1 FROM locataires WHERE unite_id = $1 AND statut = 'Actif'", [uniteId]
       );
-      await majLoyer(client, rows[0].id, debut || moisCourant(), loyer);
-      if (statut === 'Actif') await enregistrerAvance(client, rows[0].id, debut, entier(b.avance), dateEntree, req.utilisateur.id);
-      await journal(client, req, 'locataire.cree', 'locataire', rows[0].id,
-        { nom: nom, batiment_id: Number(b.batiment_id), porte: b.numero_porte, loyer });
-      return rows[0];
+      if (occupee.rows[0]) return res.status(409).json({ message: 'Cette unité est déjà occupée' });
+    }
+    const batimentId = unite ? unite.batiment_id : Number(b.batiment_id);
+    const porte = unite ? unite.porte : texteOuNull(b.numero_porte);
+    if (!batimentId || !nom) return res.status(400).json({ message: 'Bâtiment et nom requis' });
+    const statut = b.statut === 'Vide' ? 'Vide' : 'Actif';
+    const loyer = entier(b.loyer_mensuel) || (unite ? unite.loyer_base : 0);
+    const dateEntree = texteOuNull(b.date_entree);
+    const debut = statut === 'Actif' ? debutSuivi(b, dateEntree) : null;
+    if (debut && await refuserSiCloture(res, debut)) return;
+
+    const loc = await transaction(async (client) => {
+      if (!uniteId) uniteId = await unitePour(client, batimentId, porte, loyer);
+      if (statut === 'Actif') {
+        // Jamais deux contrats actifs sur la même porte physique
+        const conflit = await client.query(
+          "SELECT 1 FROM locataires WHERE unite_id = $1 AND statut = 'Actif'", [uniteId]
+        );
+        if (conflit.rows[0]) {
+          const err = new Error('Cette porte est déjà occupée'); err.code = 'OCCUPEE';
+          throw err;
+        }
+      }
+      // Une ligne « Vide » existe sur cette unité : on la transforme en occupation
+      const vide = uniteId ? await client.query(
+        "SELECT id FROM locataires WHERE unite_id = $1 AND statut = 'Vide' ORDER BY id LIMIT 1", [uniteId]
+      ) : { rows: [] };
+      let locataireId;
+      if (vide.rows[0] && statut === 'Actif') {
+        locataireId = vide.rows[0].id;
+        await client.query(
+          `UPDATE locataires SET nom_locataire=$1, loyer_mensuel=$2, date_entree=$3, statut='Actif',
+             telephone=$4, note=$5, debut_suivi=$6, solde_initial=$7, caution=$8, mois_sortie=NULL,
+             updated_at=CURRENT_TIMESTAMP WHERE id=$9`,
+          [nom, loyer, dateEntree, texteOuNull(b.telephone), texteOuNull(b.note), debut,
+           entier(b.solde_initial), entier(b.caution), locataireId]
+        );
+        // La ligne Vide n'avait aucun versement : son historique repart du nouveau loyer
+        await client.query('DELETE FROM loyers_historique WHERE locataire_id = $1', [locataireId]);
+        await client.query('DELETE FROM notes_loyers WHERE locataire_id = $1', [locataireId]);
+      } else {
+        const { rows } = await client.query(
+          `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, date_entree, statut, telephone, note,
+                                   debut_suivi, solde_initial, caution, unite_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+          [batimentId, porte, nom, loyer, dateEntree, statut,
+           texteOuNull(b.telephone), texteOuNull(b.note), debut,
+           statut === 'Actif' ? entier(b.solde_initial) : 0, statut === 'Actif' ? entier(b.caution) : 0, uniteId]
+        );
+        locataireId = rows[0].id;
+      }
+      await majLoyer(client, locataireId, debut || moisCourant(), loyer);
+      if (statut === 'Actif') await enregistrerAvance(client, locataireId, debut, entier(b.avance), dateEntree, req.utilisateur.id);
+      await journal(client, req, 'locataire.cree', 'locataire', locataireId,
+        { nom, batiment_id: batimentId, porte, unite_id: uniteId, loyer });
+      return (await client.query('SELECT * FROM locataires WHERE id = $1', [locataireId])).rows[0];
     });
     if (debut) await recalculerResume(debut);
     res.status(201).json(loc);
-  } catch (e) { res.status(500).json({ message: 'Erreur serveur: ' + e.message }); }
+  } catch (e) {
+    if (e.code === 'OCCUPEE') return res.status(409).json({ message: e.message });
+    res.status(500).json({ message: 'Erreur serveur: ' + e.message });
+  }
 });
 
 // PUT /api/locataires/:id  (admin, gerant)
@@ -119,6 +175,14 @@ router.put('/:id', requireAuth, GESTION, async (req, res) => {
     if (ex.statut === 'Vide' && !devientOccupe) { v.debut_suivi = null; v.solde_initial = 0; v.caution = 0; }
     if (v.debut_suivi && !MOIS_VALIDE.test(v.debut_suivi)) return res.status(400).json({ message: 'Début du suivi invalide (AAAA-MM)' });
     const moisSortie = ex.statut === 'Parti' && v.statut === 'Actif' ? null : ex.mois_sortie;
+    // Révision de loyer datée : impossible sur un mois clôturé (hors transaction — une
+    // réponse 409 envoyée pendant la transaction serait suivie d'un second res.json)
+    const loyerChange = !devientOccupe && v.loyer_mensuel !== ex.loyer_mensuel;
+    const aPartirDe = loyerChange
+      ? (MOIS_VALIDE.test(String(b.loyer_a_partir_de || '')) ? b.loyer_a_partir_de : moisCourant())
+      : null;
+    if (aPartirDe && await refuserSiCloture(res, aPartirDe)) return;
+    if (devientOccupe && v.debut_suivi && await refuserSiCloture(res, v.debut_suivi)) return;
 
     const loc = await transaction(async (client) => {
       const { rows } = await client.query(
@@ -132,8 +196,7 @@ router.put('/:id', requireAuth, GESTION, async (req, res) => {
       if (devientOccupe) {
         await majLoyer(client, id, v.debut_suivi, v.loyer_mensuel);
         await enregistrerAvance(client, id, v.debut_suivi, entier(b.avance), v.date_entree, req.utilisateur.id);
-      } else if (v.loyer_mensuel !== ex.loyer_mensuel) {
-        const aPartirDe = MOIS_VALIDE.test(String(b.loyer_a_partir_de || '')) ? b.loyer_a_partir_de : moisCourant();
+      } else if (loyerChange) {
         await majLoyer(client, id, aPartirDe, v.loyer_mensuel);
       }
       await journal(client, req, 'locataire.modifie', 'locataire', id,
@@ -158,6 +221,7 @@ router.post('/:id/depart', requireAuth, GESTION, async (req, res) => {
     if (!loc) return res.status(404).json({ message: 'Locataire introuvable' });
     if (loc.statut !== 'Actif') return res.status(400).json({ message: 'Seul un locataire actif peut partir' });
     if (loc.debut_suivi && mois < loc.debut_suivi) return res.status(400).json({ message: 'Le mois de sortie précède le début du suivi' });
+    if (await refuserSiCloture(res, mois)) return;
     const dette = situations[id].dette;
     const retenue = entier(b.retenue);
     const remboursement = entier(b.remboursement);
@@ -185,9 +249,9 @@ router.post('/:id/depart', requireAuth, GESTION, async (req, res) => {
       }
       if (b.porte_vide) {
         const { rows } = await client.query(
-          `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, statut)
-           VALUES ($1, $2, '(PORTE VIDE)', $3, 'Vide') RETURNING id`,
-          [loc.batiment_id, loc.numero_porte, loc.loyer_mensuel]
+          `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, statut, unite_id)
+           VALUES ($1, $2, '(PORTE VIDE)', $3, 'Vide', $4) RETURNING id`,
+          [loc.batiment_id, loc.numero_porte, loc.loyer_mensuel, loc.unite_id]
         );
         await majLoyer(client, rows[0].id, moisSuivant(mois), loc.loyer_mensuel);
       }
@@ -204,6 +268,16 @@ router.post('/:id/depart', requireAuth, GESTION, async (req, res) => {
 router.delete('/:id', requireAuth, GESTION, async (req, res) => {
   const id = Number(req.params.id);
   try {
+    // Suppression impossible si des écritures existent sur un mois clôturé (elles disparaîtraient)
+    const clot = await pool.query(
+      `SELECT 1 FROM versements v JOIN clotures c ON c.mois = v.mois AND c.decloture_le IS NULL
+       WHERE v.locataire_id = $1
+       UNION ALL
+       SELECT 1 FROM notes_loyers n JOIN clotures c ON c.mois = n.mois AND c.decloture_le IS NULL
+       WHERE n.locataire_id = $1
+       LIMIT 1`, [id]
+    );
+    if (clot.rows[0]) return res.status(409).json({ message: 'Ce locataire a des écritures sur un mois clôturé', code: 'MOIS_CLOTURE' });
     const r = await pool.query('DELETE FROM locataires WHERE id = $1 RETURNING nom_locataire, numero_porte', [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: 'Locataire introuvable' });
     await journal(null, req, 'locataire.supprime', 'locataire', id,

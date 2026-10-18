@@ -277,7 +277,7 @@ export function FicheLocataire({ id, mois }) {
       <h3 style={{ fontSize: 16 }}>Versements</h3>
       {f.versements.length === 0 ? <div className="vide-note" style={{ padding: 14 }}>Aucun versement enregistré.</div> : (
         <table className="tableau">
-          <thead><tr><th>Mois</th><th>Date</th><th className="num">Montant</th><th>Type / mode</th><th>Note</th></tr></thead>
+          <thead><tr><th>Mois</th><th>Date</th><th className="num">Montant</th><th>Type / mode</th><th>Note</th><th></th></tr></thead>
           <tbody>
             {f.versements.map((v) => (
               <tr key={v.id}>
@@ -286,6 +286,12 @@ export function FicheLocataire({ id, mois }) {
                 <td className="num"><b>{fcfa(v.montant)} F</b></td>
                 <td>{TYPES[v.type]} · {v.mode}</td>
                 <td style={{ fontSize: 13 }}>{v.note || ''}</td>
+                <td>{v.numero_quittance && (
+                  <button className="btn petit" title={v.numero_quittance}
+                    onClick={() => api.telecharger('GET', `/api/versements/${v.id}/quittance`)}>
+                    Quittance
+                  </button>
+                )}</td>
               </tr>
             ))}
           </tbody>
