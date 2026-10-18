@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import SelecteurMois from '../components/SelecteurMois.jsx';
-import { fcfa, moisLabel } from '../utils/format.js';
+import { fcfa, fmtNombre, moisLabel } from '../utils/format.js';
 import { api } from '../utils/api.js';
 
 export default function Dashboard({ data, reload, mois, setMois, setPage }) {
@@ -48,6 +48,16 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
 
       <div className="cartes">
         <div className="carte">
+          <div className="libelle">Dette totale des locataires</div>
+          <div className="valeur" style={{ color: 'var(--rouge)' }}>
+            {fcfa(Object.values(data.situations).reduce((s, x) => s + x.dette, 0))} F
+          </div>
+        </div>
+        <div className="carte">
+          <div className="libelle">Cautions détenues</div>
+          <div className="valeur">{fcfa(data.cautions_detenues)} F</div>
+        </div>
+        <div className="carte">
           <div className="libelle">Sommes remis au Boss — {moisLabel(mois)}</div>
           {remisEdit === null ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -92,7 +102,7 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
         <div className="vide-note">Aucun locataire en retard.</div>
       ) : (
         <table className="tableau">
-          <thead><tr><th>Locataire</th><th>Bâtiment / Porte</th><th className="num">Loyer</th><th className="num">Mois de retard</th><th className="num">Montant dû</th></tr></thead>
+          <thead><tr><th>Locataire</th><th>Bâtiment / Porte</th><th className="num">Loyer</th><th className="num">Équivalent</th><th className="num">Montant dû</th></tr></thead>
           <tbody>
             {data.en_retard.map((l) => {
               const bat = data.batiments.find((b) => Number(b.id) === Number(l.batiment_id));
@@ -100,9 +110,9 @@ export default function Dashboard({ data, reload, mois, setMois, setPage }) {
                 <tr key={l.id} style={{ cursor: 'pointer' }} onClick={() => setPage('loyers')}>
                   <td><b>{l.nom_locataire}</b></td>
                   <td>{bat ? bat.nom : ''} {l.numero_porte || ''}</td>
-                  <td className="num">{fcfa(l.loyer_mensuel)} F</td>
-                  <td className="num"><span className="badge retard">{l.arrieres_mois} mois</span></td>
-                  <td className="num" style={{ color: 'var(--rouge)', fontWeight: 700 }}>{fcfa(l.arrieres_mois * (Number(l.loyer_mensuel) || 0))} F</td>
+                  <td className="num">{fcfa(l.situation.loyer)} F</td>
+                  <td className="num"><span className="badge retard">{fmtNombre(l.situation.dette_mois)} mois</span></td>
+                  <td className="num" style={{ color: 'var(--rouge)', fontWeight: 700 }}>{fcfa(l.situation.dette)} F</td>
                 </tr>
               );
             })}

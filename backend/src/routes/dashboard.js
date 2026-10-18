@@ -2,53 +2,51 @@ const express = require('express');
 const pool = require('../config/db');
 const { requireAuth } = require('../middleware/auth');
 const { recalculerResume } = require('../services/resume');
-const { calculerArrieres } = require('../services/arrieres');
+const { chargerSituations, moisCourant } = require('../services/situation');
 
 const router = express.Router();
 
 // GET /api/dashboard?mois=AAAA-MM
 router.get('/', requireAuth, async (req, res) => {
-  const mois = req.query.mois || new Date().toISOString().slice(0, 7);
+  const mois = req.query.mois || moisCourant();
   try {
-    await recalculerResume(mois);
-
+    const resume = await recalculerResume(mois);
+    const { locataires, situations } = await chargerSituations(mois);
     const batiments = await pool.query('SELECT * FROM batiments ORDER BY id');
-    const locataires = await pool.query("SELECT * FROM locataires WHERE statut <> 'Parti' ORDER BY batiment_id, numero_porte NULLS LAST, nom_locataire");
-    const paiements = await pool.query('SELECT * FROM paiements WHERE mois = $1', [mois]);
+    const versements = await pool.query('SELECT * FROM versements WHERE mois = $1 ORDER BY date_versement, id', [mois]);
     const depenses = await pool.query('SELECT * FROM depenses WHERE mois = $1', [mois]);
-    const resume = await pool.query('SELECT * FROM resumes WHERE mois = $1', [mois]);
+    const notesRows = await pool.query('SELECT locataire_id, note FROM notes_loyers WHERE mois = $1', [mois]);
+    const notes = {};
+    notesRows.rows.forEach((n) => { notes[n.locataire_id] = n.note; });
 
-    // Arriérés courants par locataire
-    const arrieres = {};
-    for (const l of locataires.rows) {
-      arrieres[l.id] = await calculerArrieres(l.id, mois);
-    }
-
-    // Stats par bâtiment
     const parBatiment = batiments.rows.map((b) => {
-      const locs = locataires.rows.filter((l) => l.batiment_id === b.id && l.statut === 'Actif');
-      const attendu = locs.reduce((s, l) => s + Number(l.loyer_mensuel), 0);
-      const percu = paiements.rows
-        .filter((p) => locs.some((l) => l.id === p.locataire_id))
-        .reduce((s, p) => s + Number(p.montant_total_paye), 0);
-      return { ...b, attendu, percu, nb: locs.length };
+      const locs = locataires.filter((l) => l.batiment_id === b.id);
+      const ids = new Set(locs.map((l) => l.id));
+      return {
+        ...b,
+        attendu: locs.reduce((s, l) => s + situations[l.id].loyer_du_mois, 0),
+        percu: versements.rows.filter((v) => ids.has(v.locataire_id)).reduce((s, v) => s + v.montant, 0),
+        nb: locs.filter((l) => situations[l.id].loyer_du_mois > 0).length,
+      };
     });
 
-    const enRetard = locataires.rows
-      .filter((l) => l.statut === 'Actif' && arrieres[l.id] > 0)
-      .map((l) => ({ ...l, arrieres_mois: arrieres[l.id] }))
-      .sort((a, b) => b.arrieres_mois - a.arrieres_mois);
+    const enRetard = locataires
+      .filter((l) => situations[l.id].dette > 0 && situations[l.id].loyer_du_mois > 0)
+      .map((l) => ({ ...l, situation: situations[l.id] }))
+      .sort((a, b) => b.situation.dette - a.situation.dette);
 
     res.json({
       mois,
       batiments: batiments.rows,
-      locataires: locataires.rows,
-      paiements: paiements.rows,
+      locataires,
+      situations,
+      versements: versements.rows,
+      notes,
       depenses: depenses.rows,
-      resume: resume.rows[0] || null,
+      resume,
       par_batiment: parBatiment,
-      arrieres_courants: arrieres,
       en_retard: enRetard,
+      cautions_detenues: locataires.filter((l) => l.statut !== 'Parti').reduce((s, l) => s + (l.caution || 0), 0),
     });
   } catch (e) {
     console.error('dashboard:', e.message);

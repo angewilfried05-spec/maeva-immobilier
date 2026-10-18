@@ -53,14 +53,14 @@ async function run() {
     `);
     const migrationsDir = path.join(__dirname, 'migrations');
     const fichiers = fs.readdirSync(migrationsDir)
-      .filter((f) => f.endsWith('.sql')).sort();
+      .filter((f) => f.endsWith('.sql') || f.endsWith('.js')).sort();
     for (const f of fichiers) {
       const { rows } = await migClient.query(
         'SELECT 1 FROM schema_migrations WHERE nom = $1', [f]
       );
       if (rows.length > 0) { console.log(`   • ${f} déjà appliquée`); continue; }
-      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8');
-      await migClient.query(sql);
+      if (f.endsWith('.sql')) await migClient.query(fs.readFileSync(path.join(migrationsDir, f), 'utf8'));
+      else await require(path.join(migrationsDir, f)).up(migClient);
       await migClient.query('INSERT INTO schema_migrations (nom) VALUES ($1)', [f]);
       console.log(`   ✓ ${f} appliquée`);
     }

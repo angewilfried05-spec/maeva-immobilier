@@ -119,7 +119,7 @@ export default function ImportExcel({ reload, setPage, data }) {
 
           <h2>Locataires détectés (modifiables)</h2>
           <table className="tableau">
-            <thead><tr><th>Porte</th><th>Nom</th><th className="num">Loyer</th><th className="num">Qté payée ce mois</th><th>Statut</th><th className="num">Arriérés (mois)</th><th>Note détectée</th></tr></thead>
+            <thead><tr><th>Porte</th><th>Nom</th><th className="num">Loyer</th><th className="num">Qté payée ce mois</th><th>Statut</th><th className="num">Dette avant ce mois (mois)</th><th>Note détectée</th></tr></thead>
             <tbody>
               {apercu.batiments.map((b, bi) => (
                 <React.Fragment key={bi}>
@@ -132,7 +132,7 @@ export default function ImportExcel({ reload, setPage, data }) {
                       <td className="num"><input className="qte" type="number" value={l.qte_payee_ce_mois} onChange={(e) => modifierLocataire(bi, li, 'qte_payee_ce_mois', Number(e.target.value) || 0)} /></td>
                       <td>
                         <select value={l.statut} onChange={(e) => modifierLocataire(bi, li, 'statut', e.target.value)}>
-                          <option>Actif</option><option>Vide</option><option>Parti</option>
+                          <option>Actif</option><option>Vide</option>
                         </select>
                       </td>
                       <td className="num"><input className="qte" type="number" value={l.arrieres_initial} onChange={(e) => modifierLocataire(bi, li, 'arrieres_initial', Number(e.target.value) || 0)} /></td>

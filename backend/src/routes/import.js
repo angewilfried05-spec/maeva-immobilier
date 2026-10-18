@@ -7,6 +7,7 @@ const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { parseFile } = require('../services/parser-import');
 const { recalculerResume } = require('../services/resume');
+const { majLoyer, ajouterVersement } = require('../services/loyers');
 
 const router = express.Router();
 const upload = multer({ dest: path.join(os.tmpdir(), 'maeva-import') });
@@ -53,35 +54,48 @@ router.post('/commit', requireAuth, requireRole('admin', 'gerant'), async (req, 
       }
       for (const l of b.locataires) {
         const exL = await client.query(
-          'SELECT id FROM locataires WHERE batiment_id = $1 AND upper(nom_locataire) = upper($2) AND COALESCE(numero_porte,$3) = COALESCE(numero_porte,$3)',
+          "SELECT id FROM locataires WHERE batiment_id = $1 AND upper(nom_locataire) = upper($2) AND upper(COALESCE(numero_porte,'')) = upper(COALESCE($3,''))",
           [batId, l.nom_locataire, l.numero_porte || null]
         );
+        const loyer = Math.round(Number(l.loyer_mensuel) || 0);
+        const statut = l.statut === 'Vide' ? 'Vide' : 'Actif';
+        // "DOIT N MOIS" du fichier = dette avant le mois importé
+        const soldeInitial = Math.round((Number(l.arrieres_initial) || 0) * loyer);
         let locId;
+        let actif = statut === 'Actif';
         if (exL.rows[0]) {
           locId = exL.rows[0].id;
+          const ex = (await client.query('SELECT * FROM locataires WHERE id = $1', [locId])).rows[0];
+          // Seule transition appliquée par l'import : porte vide -> occupée (nouveau compte à partir de ce mois).
+          // Un départ se fait avec le bouton « Départ », pas par import.
+          const devientOccupe = ex.statut === 'Vide' && statut === 'Actif';
+          actif = ex.statut === 'Actif' || devientOccupe;
           await client.query(
-            `UPDATE locataires SET loyer_mensuel=$1, statut=$2, note=$3, arrieres_initial=$4, updated_at=CURRENT_TIMESTAMP WHERE id=$5`,
-            [l.loyer_mensuel, l.statut, l.note, l.arrieres_initial || 0, locId]
+            `UPDATE locataires SET loyer_mensuel=$1, note=$2, statut=$3,
+               debut_suivi = CASE WHEN $4 THEN $5 ELSE debut_suivi END,
+               solde_initial = CASE WHEN $4 THEN $6 ELSE solde_initial END,
+               updated_at=CURRENT_TIMESTAMP WHERE id=$7`,
+            [loyer, l.note, devientOccupe ? 'Actif' : ex.statut, devientOccupe, mois, soldeInitial, locId]
           );
+          if (devientOccupe || loyer !== ex.loyer_mensuel) await majLoyer(client, locId, mois, loyer);
         } else {
           const insL = await client.query(
-            `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, statut, note, arrieres_initial)
-             VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-            [batId, l.numero_porte, l.nom_locataire, l.loyer_mensuel, l.statut, l.note, l.arrieres_initial || 0]
+            `INSERT INTO locataires (batiment_id, numero_porte, nom_locataire, loyer_mensuel, statut, note, arrieres_initial, debut_suivi, solde_initial)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+            [batId, l.numero_porte, l.nom_locataire, loyer, statut, l.note, Number(l.arrieres_initial) || 0,
+             actif ? mois : null, actif ? soldeInitial : 0]
           );
           locId = insL.rows[0].id;
+          await majLoyer(client, locId, mois, loyer);
         }
-        if (Number(l.qte_payee_ce_mois) > 0) {
-          const total = Math.round(Number(l.qte_payee_ce_mois) * Number(l.loyer_mensuel));
-          await client.query(
-            `INSERT INTO paiements (locataire_id, mois, quantite_mois_payee, montant_unitaire, montant_total_paye, date_paiement)
-             VALUES ($1,$2,$3,$4,$5,CURRENT_DATE)
-             ON CONFLICT (locataire_id, mois) DO UPDATE SET
-               quantite_mois_payee = EXCLUDED.quantite_mois_payee,
-               montant_unitaire = EXCLUDED.montant_unitaire,
-               montant_total_paye = EXCLUDED.montant_total_paye`,
-            [locId, mois, Number(l.qte_payee_ce_mois), Number(l.loyer_mensuel), total]
-          );
+        // Ré-importer le même mois remplace les versements issus de l'import précédent
+        await client.query('DELETE FROM versements WHERE locataire_id = $1 AND mois = $2 AND importe', [locId, mois]);
+        const montant = Math.round((Number(l.qte_payee_ce_mois) || 0) * loyer);
+        if (actif && montant > 0) {
+          await ajouterVersement(client, {
+            locataire_id: locId, mois, montant, date_versement: `${mois}-01`, importe: true,
+            note: 'Import Excel', created_by: req.utilisateur.id,
+          });
         }
       }
     }

@@ -1,6 +1,10 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
+
+// Colonnes DATE renvoyées telles quelles ('AAAA-MM-JJ') plutôt qu'en objet Date :
+// évite les décalages de fuseau et les String(date) inexploitables.
+types.setTypeParser(1082, (v) => v);
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',

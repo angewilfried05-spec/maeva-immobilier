@@ -11,7 +11,7 @@ export default function ChangerMotDePasse({ onFermer }) {
 
   const valider = async () => {
     setMessage(null);
-    if (nouveau.length < 4) { setMessage({ type: 'erreur', txt: 'Le nouveau mot de passe doit faire au moins 4 caractères.' }); return; }
+    if (nouveau.length < 8) { setMessage({ type: 'erreur', txt: 'Le nouveau mot de passe doit faire au moins 8 caractères.' }); return; }
     if (nouveau !== confirmer) { setMessage({ type: 'erreur', txt: 'Les deux mots de passe ne correspondent pas.' }); return; }
     setEnCours(true);
     try {

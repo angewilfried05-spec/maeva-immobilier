@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const ExcelJS = require('exceljs');
 const pool = require('../config/db');
-const { calculerArrieres } = require('./arrieres');
+const { chargerSituations } = require('./situation');
 
 const MOIS_NOMS = ['JANVIER', 'FEVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
   'JUILLET', 'AOUT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DECEMBRE'];
@@ -23,8 +23,12 @@ async function genererRapport(mois, outDir) {
   cfgRows.forEach((r) => { config[r.cle] = r.valeur; });
 
   const batiments = (await pool.query('SELECT * FROM batiments ORDER BY id')).rows;
-  const locataires = (await pool.query("SELECT * FROM locataires WHERE statut <> 'Parti' ORDER BY batiment_id, numero_porte NULLS LAST, nom_locataire")).rows;
-  const paiements = (await pool.query('SELECT * FROM paiements WHERE mois = $1', [mois])).rows;
+  const { locataires: tous, situations } = await chargerSituations(mois);
+  // Même sélection que l'écran de saisie : portes vides, locataires présents ce mois, ou ayant payé ce mois
+  const locataires = tous.filter((l) => l.statut === 'Vide' || situations[l.id].loyer_du_mois > 0 || situations[l.id].recu_mois > 0);
+  const notes = {};
+  (await pool.query('SELECT locataire_id, note FROM notes_loyers WHERE mois = $1', [mois])).rows
+    .forEach((n) => { notes[n.locataire_id] = n.note; });
   const depenses = (await pool.query('SELECT * FROM depenses WHERE mois = $1', [mois])).rows;
   const resume = (await pool.query('SELECT * FROM resumes WHERE mois = $1', [mois])).rows[0];
 
@@ -69,18 +73,18 @@ async function genererRapport(mois, outDir) {
     cb.value = bat.nom; cb.font = { bold: true }; cb.border = BORDER;
     r++;
     for (const l of locs) {
-      const p = paiements.find((x) => x.locataire_id === l.id);
-      const arr = await calculerArrieres(l.id, mois);
+      const s = situations[l.id];
       let nom = [l.numero_porte, l.nom_locataire].filter(Boolean).join(' ');
       if (l.statut === 'Vide') nom += ' VIDE';
-      else if (arr > 0) nom += ` DOIT ${arr} MOIS`;
-      if (p && p.note) nom += ` ${p.note}`;
-      else if (l.note && !(arr > 0)) nom += ` ${l.note}`;
+      else if (s.dette > 0) nom += ` DOIT ${String(s.dette_mois).replace('.', ',')} MOIS`;
+      if (notes[l.id]) nom += ` ${notes[l.id]}`;
+      else if (l.note && !(s.dette > 0)) nom += ` ${l.note}`;
+      const loyer = s.loyer_du_mois || s.loyer || Number(l.loyer_mensuel) || 0;
       const row = ws.getRow(r);
       row.getCell(1).value = nom;
-      row.getCell(2).value = p ? Number(p.quantite_mois_payee) || 0 : 0;
-      row.getCell(3).value = Number(l.loyer_mensuel) || 0;
-      row.getCell(4).value = { formula: `B${r}*C${r}` };
+      row.getCell(2).value = loyer ? Math.round((s.recu_mois / loyer) * 100) / 100 : 0;
+      row.getCell(3).value = loyer;
+      row.getCell(4).value = s.recu_mois;
       for (let i = 1; i <= 4; i++) {
         row.getCell(i).border = BORDER;
         if (i >= 3) row.getCell(i).numFmt = NUM_FMT;

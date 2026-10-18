@@ -208,9 +208,9 @@ router.post('/:id/dupliquer', requireAuth, requireRole('admin', 'gerant'), async
     const lignes = await client.query('SELECT * FROM lignes_devis WHERE devis_id = $1 ORDER BY ordre', [id]);
     for (const l of lignes.rows) {
       await client.query(
-        `INSERT INTO lignes_devis (devis_id, article_id, designation, categorie, quantite, prix_unitaire, prix_total, ordre)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [newId, l.article_id, l.designation, l.categorie, l.quantite, l.prix_unitaire, l.prix_total, l.ordre]
+        `INSERT INTO lignes_devis (devis_id, article_id, designation, categorie, unite, quantite, prix_unitaire, prix_total, ordre)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [newId, l.article_id, l.designation, l.categorie, l.unite || 'U', l.quantite, l.prix_unitaire, l.prix_total, l.ordre]
       );
     }
     await client.query('COMMIT');

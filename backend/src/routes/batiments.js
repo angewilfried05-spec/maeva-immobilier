@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { recalculerResume } = require('../services/resume');
+const { fusionner, texteOuNull, majuscules } = require('../utils/fusion');
 
 const router = express.Router();
 
@@ -29,16 +29,15 @@ router.post('/', requireAuth, requireRole('admin', 'gerant'), async (req, res) =
 // PUT /api/batiments/:id  (admin, gerant)
 router.put('/:id', requireAuth, requireRole('admin', 'gerant'), async (req, res) => {
   const id = Number(req.params.id);
-  const { nom, adresse, note } = req.body || {};
   try {
+    const ex = await pool.query('SELECT * FROM batiments WHERE id = $1', [id]);
+    if (!ex.rows[0]) return res.status(404).json({ message: 'Bâtiment introuvable' });
+    const v = fusionner(ex.rows[0], req.body || {}, { nom: majuscules, adresse: texteOuNull, note: texteOuNull });
+    if (!v.nom) return res.status(400).json({ message: 'Le nom est requis' });
     const { rows } = await pool.query(
-      `UPDATE batiments
-       SET nom = COALESCE($1, nom), adresse = COALESCE($2, adresse), note = COALESCE($3, note),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4 RETURNING *`,
-      [nom ? String(nom).trim().toUpperCase() : null, adresse || null, note || null, id]
+      'UPDATE batiments SET nom=$1, adresse=$2, note=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$4 RETURNING *',
+      [v.nom, v.adresse, v.note, id]
     );
-    if (!rows[0]) return res.status(404).json({ message: 'Bâtiment introuvable' });
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

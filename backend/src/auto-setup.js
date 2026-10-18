@@ -54,13 +54,27 @@ async function setup() {
     `);
     const migrationsDir = path.join(__dirname, 'migrations');
     if (fs.existsSync(migrationsDir)) {
-      const fichiers = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
-      for (const f of fichiers) {
-        const { rows } = await client.query('SELECT 1 FROM schema_migrations WHERE nom = $1', [f]);
-        if (rows.length > 0) continue;
-        const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8');
-        await client.query(sql);
-        await client.query('INSERT INTO schema_migrations (nom) VALUES ($1)', [f]);
+      const fichiers = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql') || f.endsWith('.js')).sort();
+      const { rows: faites } = await client.query('SELECT nom FROM schema_migrations');
+      const aFaire = fichiers.filter((f) => !faites.some((r) => r.nom === f));
+      // Base existante avec des données : sauvegarde de sécurité avant de la faire évoluer
+      const { rows: existe } = await client.query("SELECT to_regclass('utilisateurs') IS NOT NULL AS ok");
+      if (aFaire.length && existe[0].ok) {
+        const s = await require('./services/sauvegarde').creerSauvegarde('avant-migration');
+        console.log(`[auto-setup] Sauvegarde avant migration : ${s.nom}`);
+      }
+      for (const f of aFaire) {
+        // Chaque migration est atomique : en cas d'échec, la base reste dans son état précédent
+        await client.query('BEGIN');
+        try {
+          if (f.endsWith('.sql')) await client.query(fs.readFileSync(path.join(migrationsDir, f), 'utf8'));
+          else await require(path.join(migrationsDir, f)).up(client);
+          await client.query('INSERT INTO schema_migrations (nom) VALUES ($1)', [f]);
+          await client.query('COMMIT');
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw new Error(`Migration ${f} : ${e.message}`);
+        }
         console.log(`[auto-setup] Migration ${f} appliquée`);
       }
     }

@@ -7,7 +7,7 @@ const authRoutes = require('./routes/auth');
 const utilisateursRoutes = require('./routes/utilisateurs');
 const batimentsRoutes = require('./routes/batiments');
 const locatairesRoutes = require('./routes/locataires');
-const paiementsRoutes = require('./routes/paiements');
+const versementsRoutes = require('./routes/versements');
 const depensesRoutes = require('./routes/depenses');
 const resumesRoutes = require('./routes/resumes');
 const dashboardRoutes = require('./routes/dashboard');
@@ -15,6 +15,8 @@ const importRoutes = require('./routes/import');
 const exportRoutes = require('./routes/export');
 const devisRoutes = require('./routes/devis');
 const catalogueRoutes = require('./routes/catalogue');
+const sauvegardesRoutes = require('./routes/sauvegardes');
+const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 
 const app = express();
 
@@ -38,7 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/utilisateurs', utilisateursRoutes);
 app.use('/api/batiments', batimentsRoutes);
 app.use('/api/locataires', locatairesRoutes);
-app.use('/api/paiements', paiementsRoutes);
+app.use('/api/versements', versementsRoutes);
 app.use('/api/depenses', depensesRoutes);
 app.use('/api/resumes', resumesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -46,6 +48,7 @@ app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/devis', devisRoutes);
 app.use('/api/catalogue', catalogueRoutes);
+app.use('/api/sauvegardes', sauvegardesRoutes);
 
 // Gestion d'erreurs
 app.use((err, _req, res, _next) => {
@@ -59,6 +62,7 @@ function start(port) {
   return new Promise((resolve) => {
     const server = app.listen(port || process.env.PORT || 4001, () => {
       console.log(`✅ Backend MAEVA IMMOBILIER sur le port ${server.address().port}`);
+      demarrerSauvegardeAuto();
       resolve(server);
     });
   });

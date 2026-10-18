@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
+import Situation from '../components/Situation.jsx';
 import { fcfa } from '../utils/format.js';
-import { api } from '../utils/api.js';
-import { HistoriquePaiements } from './Locataires.jsx';
+import { FicheLocataire } from './Locataires.jsx';
 
-export default function Recherche({ data }) {
+export default function Recherche({ data, mois }) {
   const [terme, setTerme] = useState('');
   const [selection, setSelection] = useState(null);
-  const [histoData, setHistoData] = useState(null);
 
   const normaliser = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const resultats = terme.trim().length >= 2
@@ -14,11 +13,6 @@ export default function Recherche({ data }) {
     : [];
 
   const nomBat = (id) => data.batiments.find((b) => Number(b.id) === Number(id))?.nom || '';
-
-  const voir = async (l) => {
-    try { const d = await api.get(`/api/locataires/${l.id}`); setHistoData(d); setSelection(l); }
-    catch (e) { alert(e.message); }
-  };
 
   return (
     <div>
@@ -37,7 +31,7 @@ export default function Recherche({ data }) {
 
       {resultats.length > 0 && (
         <table className="tableau">
-          <thead><tr><th>Nom</th><th>Bâtiment / Porte</th><th className="num">Loyer</th><th>Statut</th><th className="num">Retard</th><th></th></tr></thead>
+          <thead><tr><th>Nom</th><th>Bâtiment / Porte</th><th className="num">Loyer</th><th>Statut</th><th>Situation</th><th></th></tr></thead>
           <tbody>
             {resultats.map((l) => (
               <tr key={l.id}>
@@ -45,19 +39,18 @@ export default function Recherche({ data }) {
                 <td>{nomBat(l.batiment_id)} {l.numero_porte || ''}</td>
                 <td className="num">{fcfa(l.loyer_mensuel)} F</td>
                 <td>{l.statut}</td>
-                <td className="num">{(data.arrieres_courants[l.id] || 0) > 0
-                  ? <span className="badge retard">{data.arrieres_courants[l.id]} mois</span> : '—'}</td>
-                <td><button className="btn petit" onClick={() => voir(l)}>Voir l'historique</button></td>
+                <td><Situation sit={data.situations[l.id]} statut={l.statut} /></td>
+                <td>{l.statut !== 'Vide' && <button className="btn petit" onClick={() => setSelection(l)}>Voir la fiche</button>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
-      {selection && histoData && (
+      {selection && (
         <div style={{ marginTop: 24 }}>
-          <h2>Historique — {selection.nom_locataire}</h2>
-          <HistoriquePaiements data={histoData} />
+          <h2>Fiche — {selection.nom_locataire}</h2>
+          <FicheLocataire id={selection.id} mois={mois} />
         </div>
       )}
     </div>

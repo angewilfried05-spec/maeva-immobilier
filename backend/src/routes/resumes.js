@@ -5,9 +5,11 @@ const { recalculerResume } = require('../services/resume');
 
 const router = express.Router();
 
-// GET /api/resumes  (tous les mois)
+// GET /api/resumes  (tous les mois, recalculés pour refléter les dernières saisies)
 router.get('/', requireAuth, async (_req, res) => {
   try {
+    const existants = await pool.query('SELECT mois FROM resumes');
+    for (const r of existants.rows) await recalculerResume(r.mois);
     const { rows } = await pool.query('SELECT * FROM resumes ORDER BY mois DESC');
     res.json(rows);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }

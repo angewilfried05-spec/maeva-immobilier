@@ -12,6 +12,7 @@ import ChangerMotDePasse from './pages/ChangerMotDePasse.jsx';
 import Devis from './pages/Devis.jsx';
 import EditeurDevis from './pages/EditeurDevis.jsx';
 import CatalogueArticles from './pages/CatalogueArticles.jsx';
+import Sauvegardes from './pages/Sauvegardes.jsx';
 import Connexion, { sessionSouvenirValide, effacerSouvenir } from './pages/Connexion.jsx';
 import { moisCourant } from './utils/format.js';
 import { api, getToken, setToken, AuthError } from './utils/api.js';
@@ -64,6 +65,7 @@ export default function App() {
     setToken(null);
     effacerSouvenir();
     setConnecte(false);
+    setPage('dashboard');
     setUtilisateur(null);
     setData(null);
   }
@@ -73,7 +75,7 @@ export default function App() {
 
   const props = { data, reload, mois, setMois, setPage, utilisateur };
   const estAdmin = utilisateur?.role === 'admin';
-  const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs']] : PAGES;
+  const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs'], ['sauvegardes', 'Sauvegardes']] : PAGES;
 
   return (
     <>
@@ -111,6 +113,7 @@ export default function App() {
         {page === 'editeur-devis' && <EditeurDevis {...props} devisId={devisId} setDevisId={setDevisId} />}
         {page === 'catalogue' && <CatalogueArticles {...props} />}
         {page === 'utilisateurs' && estAdmin && <Utilisateurs {...props} />}
+        {page === 'sauvegardes' && estAdmin && <Sauvegardes {...props} onRestaure={deconnecter} />}
       </main>
       {showMdp && <ChangerMotDePasse onFermer={() => setShowMdp(false)} />}
     </>

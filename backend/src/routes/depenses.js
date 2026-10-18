@@ -2,8 +2,10 @@ const express = require('express');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { recalculerResume } = require('../services/resume');
+const { fusionner, texteOuNull, majuscules, entier, nombre } = require('../utils/fusion');
 
 const router = express.Router();
+const CATEGORIES = ['Salaires', 'Charges', 'Travaux', 'Remboursements', 'Autre'];
 
 // GET /api/depenses?mois=
 router.get('/', requireAuth, async (req, res) => {
@@ -51,27 +53,22 @@ router.post('/', requireAuth, requireRole('admin', 'gerant', 'comptable'), async
 // PUT /api/depenses/:id  (admin, gerant, comptable)
 router.put('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), async (req, res) => {
   const id = Number(req.params.id);
-  const { mois, designation, categorie, quantite, montant_unitaire, beneficiaire, note } = req.body || {};
-  const q = quantite !== undefined ? Number(quantite) || 0 : undefined;
-  const u = montant_unitaire !== undefined ? Number(montant_unitaire) || 0 : undefined;
-  const total = (q !== undefined && u !== undefined) ? Math.round(q * u) : undefined;
   try {
+    const ex = await pool.query('SELECT * FROM depenses WHERE id = $1', [id]);
+    if (!ex.rows[0]) return res.status(404).json({ message: 'Dépense introuvable' });
+    const v = fusionner(ex.rows[0], req.body || {}, {
+      designation: majuscules, categorie: texteOuNull, quantite: nombre, montant_unitaire: entier,
+      beneficiaire: texteOuNull, note: texteOuNull,
+    });
+    if (!v.designation) return res.status(400).json({ message: 'designation requise' });
+    if (!CATEGORIES.includes(v.categorie)) v.categorie = ex.rows[0].categorie;
     const { rows } = await pool.query(
-      `UPDATE depenses SET
-         designation = COALESCE($1, designation),
-         categorie = COALESCE($2, categorie),
-         quantite = COALESCE($3, quantite),
-         montant_unitaire = COALESCE($4, montant_unitaire),
-         montant_total = COALESCE($5, montant_total),
-         beneficiaire = COALESCE($6, beneficiaire),
-         note = COALESCE($7, note),
-         updated_at = CURRENT_TIMESTAMP
+      `UPDATE depenses SET designation=$1, categorie=$2, quantite=$3, montant_unitaire=$4, montant_total=$5,
+         beneficiaire=$6, note=$7, updated_at=CURRENT_TIMESTAMP
        WHERE id = $8 RETURNING *`,
-      [designation ? String(designation).trim().toUpperCase() : null, categorie || null,
-       q === undefined ? null : q, u === undefined ? null : u, total === undefined ? null : total,
-       beneficiaire || null, note || null, id]
+      [v.designation, v.categorie, v.quantite, v.montant_unitaire,
+       Math.round(Number(v.quantite) * Number(v.montant_unitaire)), v.beneficiaire, v.note, id]
     );
-    if (!rows[0]) return res.status(404).json({ message: 'Dépense introuvable' });
     await recalculerResume(rows[0].mois);
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
