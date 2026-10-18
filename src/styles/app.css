@@ -177,7 +177,7 @@ table.tableau {
 
 .barre { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 .selecteur-mois {
-  display: flex; align-items: center; gap: 8px; background: #fff;
+  display: flex; align-items: center; gap: 8px; background: #fff; color: var(--texte);
   border: 1px solid var(--bord); border-radius: 12px; padding: 6px 10px;
   box-shadow: var(--ombre);
 }
