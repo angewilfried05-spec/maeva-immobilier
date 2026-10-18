@@ -8,14 +8,16 @@ const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
   throw new Error('JWT_SECRET manquant : définissez-le dans backend/.env');
 }
-const EXPIRES_H = Number(process.env.JWT_EXPIRES_H) || 24;
+// Durée du jeton d'accès : courte (les clients rechargent via le refresh token).
+// JWT_ACCES_MINUTES prioritaire ; JWT_EXPIRES_H accepté pour compatibilité.
+const EXPIRES_MIN = Number(process.env.JWT_ACCES_MINUTES) || (Number(process.env.JWT_EXPIRES_H) || 1) * 60;
 
 function signToken(utilisateur) {
   return jwt.sign(
     { id: utilisateur.id, username: utilisateur.username, role: utilisateur.role, nom: utilisateur.nom_complet,
       mdp_a_changer: Boolean(utilisateur.doit_changer_mdp) },
     SECRET,
-    { expiresIn: `${EXPIRES_H}h` }
+    { expiresIn: `${EXPIRES_MIN}m` }
   );
 }
 
@@ -28,7 +30,8 @@ function requireAuth(req, res, next) {
     const payload = jwt.verify(token, SECRET);
     req.utilisateur = payload;
     // Mot de passe par défaut / fixé par l'admin : seul le changement de mot de passe est autorisé
-    if (payload.mdp_a_changer && !req.originalUrl.startsWith('/api/auth/')) {
+    // (routes auth sous /api et /api/v1 : login, refresh, change-password)
+    if (payload.mdp_a_changer && !/^\/api\/(v1\/)?auth\//.test(req.originalUrl)) {
       return res.status(403).json({ message: 'Vous devez changer votre mot de passe', code: 'MDP_A_CHANGER' });
     }
     next();

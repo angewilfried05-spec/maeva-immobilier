@@ -3,6 +3,7 @@ const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { recalculerResume } = require('../services/resume');
 const { fusionner, texteOuNull, majuscules, entier, nombre } = require('../utils/fusion');
+const { journal } = require('../services/journal');
 
 const router = express.Router();
 const CATEGORIES = ['Salaires', 'Charges', 'Travaux', 'Remboursements', 'Autre'];
@@ -46,6 +47,8 @@ router.post('/', requireAuth, requireRole('admin', 'gerant', 'comptable'), async
       [mois, String(designation).trim().toUpperCase(), categorie || 'Autre', q, u, Math.round(q * u), beneficiaire || null, note || null]
     );
     await recalculerResume(mois);
+    await journal(null, req, 'depense.cree', 'depense', rows[0].id,
+      { mois, designation: rows[0].designation, montant: rows[0].montant_total, categorie: rows[0].categorie });
     res.status(201).json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });
@@ -70,6 +73,8 @@ router.put('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), asy
        Math.round(Number(v.quantite) * Number(v.montant_unitaire)), v.beneficiaire, v.note, id]
     );
     await recalculerResume(rows[0].mois);
+    await journal(null, req, 'depense.modifie', 'depense', id,
+      { mois: rows[0].mois, designation: rows[0].designation, montant: rows[0].montant_total });
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });
@@ -78,9 +83,11 @@ router.put('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), asy
 router.delete('/:id', requireAuth, requireRole('admin', 'gerant', 'comptable'), async (req, res) => {
   const id = Number(req.params.id);
   try {
-    const r = await pool.query('DELETE FROM depenses WHERE id = $1 RETURNING mois', [id]);
+    const r = await pool.query('DELETE FROM depenses WHERE id = $1 RETURNING mois, designation, montant_total', [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: 'Dépense introuvable' });
     await recalculerResume(r.rows[0].mois);
+    await journal(null, req, 'depense.supprime', 'depense', id,
+      { mois: r.rows[0].mois, designation: r.rows[0].designation, montant: r.rows[0].montant_total });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

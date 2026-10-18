@@ -6,6 +6,7 @@ const { transaction } = require('../utils/transaction');
 const { chargerSituations, moisCourant, moisSuivant } = require('../services/situation');
 const { recalculerResume } = require('../services/resume');
 const { MOIS_VALIDE, moisDe, majLoyer, ajouterVersement } = require('../services/loyers');
+const { journal } = require('../services/journal');
 
 const router = express.Router();
 const GESTION = requireRole('admin', 'gerant');
@@ -84,6 +85,8 @@ router.post('/', requireAuth, GESTION, async (req, res) => {
       );
       await majLoyer(client, rows[0].id, debut || moisCourant(), loyer);
       if (statut === 'Actif') await enregistrerAvance(client, rows[0].id, debut, entier(b.avance), dateEntree, req.utilisateur.id);
+      await journal(client, req, 'locataire.cree', 'locataire', rows[0].id,
+        { nom: nom, batiment_id: Number(b.batiment_id), porte: b.numero_porte, loyer });
       return rows[0];
     });
     if (debut) await recalculerResume(debut);
@@ -133,6 +136,8 @@ router.put('/:id', requireAuth, GESTION, async (req, res) => {
         const aPartirDe = MOIS_VALIDE.test(String(b.loyer_a_partir_de || '')) ? b.loyer_a_partir_de : moisCourant();
         await majLoyer(client, id, aPartirDe, v.loyer_mensuel);
       }
+      await journal(client, req, 'locataire.modifie', 'locataire', id,
+        { champs: Object.keys(b), statut: v.statut, loyer: v.loyer_mensuel });
       return rows[0];
     });
     res.json(loc);
@@ -186,6 +191,8 @@ router.post('/:id/depart', requireAuth, GESTION, async (req, res) => {
         );
         await majLoyer(client, rows[0].id, moisSuivant(mois), loc.loyer_mensuel);
       }
+      await journal(client, req, 'locataire.depart', 'locataire', id,
+        { nom: loc.nom_locataire, mois_sortie: mois, dette, retenue, remboursement, porte_vide: Boolean(b.porte_vide) });
     });
     await recalculerResume(mois);
     const apres = await chargerSituations(mois, [id]);
@@ -197,8 +204,10 @@ router.post('/:id/depart', requireAuth, GESTION, async (req, res) => {
 router.delete('/:id', requireAuth, GESTION, async (req, res) => {
   const id = Number(req.params.id);
   try {
-    const r = await pool.query('DELETE FROM locataires WHERE id = $1', [id]);
+    const r = await pool.query('DELETE FROM locataires WHERE id = $1 RETURNING nom_locataire, numero_porte', [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: 'Locataire introuvable' });
+    await journal(null, req, 'locataire.supprime', 'locataire', id,
+      { nom: r.rows[0].nom_locataire, porte: r.rows[0].numero_porte });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

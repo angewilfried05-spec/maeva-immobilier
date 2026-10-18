@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../components/Modal.jsx';
-import { api, setToken } from '../utils/api.js';
+import { api, setSession } from '../utils/api.js';
 
 // oblige : premier accès avec un mot de passe par défaut / fixé par l'admin (pas d'annulation possible)
 export default function ChangerMotDePasse({ onFermer, oblige = false }) {
@@ -17,7 +17,7 @@ export default function ChangerMotDePasse({ onFermer, oblige = false }) {
     setEnCours(true);
     try {
       const r = await api.changePassword(ancien, nouveau);
-      if (r?.token) setToken(r.token);
+      if (r?.token) setSession(r);
       setMessage({ type: 'succes', txt: 'Mot de passe modifié avec succès.' });
       setAncien(''); setNouveau(''); setConfirmer('');
       setTimeout(onFermer, oblige ? 600 : 1500);

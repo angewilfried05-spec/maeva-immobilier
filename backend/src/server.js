@@ -16,6 +16,7 @@ const exportRoutes = require('./routes/export');
 const devisRoutes = require('./routes/devis');
 const catalogueRoutes = require('./routes/catalogue');
 const sauvegardesRoutes = require('./routes/sauvegardes');
+const auditRoutes = require('./routes/audit');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 
 const app = express();
@@ -42,20 +43,32 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'maeva-immobilier', version: '1.0.0' }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/utilisateurs', utilisateursRoutes);
-app.use('/api/batiments', batimentsRoutes);
-app.use('/api/locataires', locatairesRoutes);
-app.use('/api/versements', versementsRoutes);
-app.use('/api/depenses', depensesRoutes);
-app.use('/api/resumes', resumesRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/import', importRoutes);
-app.use('/api/export', exportRoutes);
-app.use('/api/devis', devisRoutes);
-app.use('/api/catalogue', catalogueRoutes);
-app.use('/api/sauvegardes', sauvegardesRoutes);
-app.use('/api', (_req, res) => res.status(404).json({ message: 'Route inconnue' }));
+// Contrat d'API v1 (référence pour les clients web / Electron / Android)
+app.get('/api/v1', (_req, res) => res.json({ version: '1', documentation: '/api/v1/openapi.json' }));
+app.get('/api/v1/openapi.json', (_req, res) => res.sendFile(path.join(__dirname, 'openapi.json')));
+app.use('/api/v1/audit', auditRoutes);
+
+// Toutes les ressources existent sous /api (clients actuels) et /api/v1 (contrat stable).
+const ROUTES = [
+  ['/auth', authRoutes],
+  ['/utilisateurs', utilisateursRoutes],
+  ['/batiments', batimentsRoutes],
+  ['/locataires', locatairesRoutes],
+  ['/versements', versementsRoutes],
+  ['/depenses', depensesRoutes],
+  ['/resumes', resumesRoutes],
+  ['/dashboard', dashboardRoutes],
+  ['/import', importRoutes],
+  ['/export', exportRoutes],
+  ['/devis', devisRoutes],
+  ['/catalogue', catalogueRoutes],
+  ['/sauvegardes', sauvegardesRoutes],
+];
+for (const [chemin, r] of ROUTES) {
+  app.use('/api' + chemin, r);
+  app.use('/api/v1' + chemin, r);
+}
+app.use('/api', (_req, res) => res.status(404).json({ message: 'Route inconnue', code: 'INCONNUE' }));
 
 // Mode serveur web : le backend sert aussi le frontend compilé (dist/)
 if (process.env.SERVIR_FRONTEND === '1') {

@@ -15,7 +15,7 @@ import CatalogueArticles from './pages/CatalogueArticles.jsx';
 import Sauvegardes from './pages/Sauvegardes.jsx';
 import Connexion, { sessionSouvenirValide, effacerSouvenir } from './pages/Connexion.jsx';
 import { moisCourant } from './utils/format.js';
-import { api, getToken, setToken, AuthError, MODE } from './utils/api.js';
+import { api, getToken, deconnecter as deconnecterApi, AuthError, MODE } from './utils/api.js';
 import logo from './assets/logo.png';
 
 const PAGES = [
@@ -62,7 +62,7 @@ export default function App() {
   useEffect(() => { if (connecte) reload(); }, [reload, connecte]);
 
   function deconnecter() {
-    setToken(null);
+    deconnecterApi(); // révoque la session serveur + efface les jetons (asynchrone, sans bloquer)
     effacerSouvenir();
     setConnecte(false);
     setPage('dashboard');

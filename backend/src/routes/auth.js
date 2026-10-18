@@ -1,7 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
-const { signToken, requireAuth } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
+const { creerSession, rotaterSession, revoquerJeton, revoquerUtilisateur } = require('../services/tokens');
+const { journal } = require('../services/journal');
 const { MOTS_DE_PASSE_PAR_DEFAUT } = require('../migrations/005_mdp_a_changer');
 
 const router = express.Router();
@@ -39,10 +41,30 @@ router.post('/login', async (req, res) => {
     }
     tentatives.delete(cle);
     await pool.query('UPDATE utilisateurs SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [u.id]);
-    const token = signToken(u);
-    res.json({ token, utilisateur: { id: u.id, username: u.username, nom_complet: u.nom_complet, role: u.role, doit_changer_mdp: u.doit_changer_mdp } });
+    const session = await creerSession(u, req);
+    await journal(null, req, 'auth.connexion', 'utilisateur', u.id, { username: u.username });
+    res.json(session);
   } catch (e) {
     console.error('login:', e.message);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// POST /api/auth/refresh  { refresh_token } → nouvelle paire (rotation du refresh)
+router.post('/refresh', async (req, res) => {
+  try {
+    res.json(await rotaterSession(req.body?.refresh_token, req));
+  } catch (e) {
+    res.status(e.status || 500).json({ message: e.status ? e.message : 'Erreur serveur' });
+  }
+});
+
+// POST /api/auth/logout  { refresh_token } → révoque la session de cet appareil
+router.post('/logout', async (req, res) => {
+  try {
+    await revoquerJeton(req.body?.refresh_token);
+    res.json({ ok: true });
+  } catch (e) {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
@@ -78,8 +100,10 @@ router.post('/change-password', requireAuth, async (req, res) => {
       'UPDATE utilisateurs SET password_hash = $1, doit_changer_mdp = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hash, req.utilisateur.id]
     );
-    // Nouveau jeton sans l'obligation de changement
-    res.json({ ok: true, token: signToken({ ...rows[0], doit_changer_mdp: false }) });
+    // Les autres sessions sont révoquées ; on démarre une nouvelle session propre
+    await revoquerUtilisateur(req.utilisateur.id);
+    await journal(null, req, 'utilisateur.mdp_change', 'utilisateur', req.utilisateur.id);
+    res.json(await creerSession({ ...rows[0], doit_changer_mdp: false }, req));
   } catch (e) {
     res.status(500).json({ message: 'Erreur serveur' });
   }

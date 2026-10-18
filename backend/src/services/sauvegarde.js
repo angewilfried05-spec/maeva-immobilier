@@ -6,8 +6,10 @@ const os = require('os');
 const pool = require('../config/db');
 
 // Ordre parents -> enfants (utilisé pour la restauration)
+// jetons_refresh volontairement absent : restaurer révoque les sessions (TRUNCATE CASCADE).
 const TABLES = [
-  'utilisateurs', 'batiments', 'locataires', 'loyers_historique', 'paiements', 'versements', 'notes_loyers',
+  'utilisateurs', 'journal_audit', 'batiments', 'locataires', 'loyers_historique', 'paiements',
+  'versements', 'quittances', 'quittances_compteur', 'notes_loyers',
   'depenses', 'resumes', 'config', 'catalogue_articles', 'devis', 'lignes_devis', 'devis_compteur',
 ];
 // Tables obligatoires dans un fichier de sauvegarde (les autres peuvent manquer : anciennes versions)
@@ -130,6 +132,10 @@ async function restaurer(contenu) {
     }
     // Comptes restaurés encore sur un mot de passe par défaut : changement obligatoire
     await require('../migrations/005_mdp_a_changer').up(client);
+    // Sauvegarde antérieure aux quittances : on numérote les versements restaurés
+    if (tables.includes('quittances')) {
+      await require('../migrations/006_api_v1').completerQuittances(client);
+    }
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK');

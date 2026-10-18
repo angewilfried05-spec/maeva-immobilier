@@ -50,3 +50,17 @@ Le backend est chargé dans le process Electron : toute modification backend né
   éventuellement en dépense ; option de recréer la porte vide.
 - Porte vide qui redevient occupée : nouveau compte à partir du mois d'entrée.
 - L'ancienne table `paiements` est conservée mais n'est plus utilisée.
+
+## API v1 (contrat pour les clients, dont Android/Kotlin)
+
+- Toutes les routes sont montées sous `/api` (historique) **et** `/api/v1` (contrat stable).
+- Spécification : `backend/src/openapi.json`, servie sur `/api/v1/openapi.json`.
+- Auth : jeton d'accès court (`JWT_ACCES_MINUTES`, 60 par défaut) + `refresh_token` 30 j (`REFRESH_JOURS`)
+  avec rotation ; rejouer un jeton révoqué révoque toute la famille (`services/tokens.js`).
+- `POST /versements` accepte `cle_idempotence` (UNIQUE partielle) : rejouer renvoie l'existant (200).
+- Chaque versement reçoit une quittance `Q-AAAA-NNNNNN` (`quittances` + `quittances_compteur`),
+  PDF téléchargeable via `GET /versements/:id/quittance`.
+- `journal_audit` : `journal(client, req, action, entite, id, details)` à appeler dans les écritures
+  sensibles ; lecture `GET /api/v1/audit` réservée à l'admin.
+- `jetons_refresh` est exclu des sauvegardes : une restauration révoque toutes les sessions.
+- Frontend `api.js` : `setSession(res)` stocke la paire, refresh transparent sur 401, `deconnecter()`.

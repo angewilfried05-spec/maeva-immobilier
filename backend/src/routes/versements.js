@@ -1,9 +1,13 @@
 const express = require('express');
+const path = require('path');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { recalculerResume } = require('../services/resume');
 const { MOIS_VALIDE, ajouterVersement } = require('../services/loyers');
 const { texteOuNull } = require('../utils/fusion');
+const { journal } = require('../services/journal');
+const { genererQuittancePdf, dossierTemporaire } = require('../services/quittances');
+const { envoyerEtSupprimer } = require('../utils/envoi-fichier');
 
 const router = express.Router();
 const SAISIE = requireRole('admin', 'gerant', 'comptable');
@@ -14,18 +18,52 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const params = [];
     const where = [];
-    if (mois) { params.push(mois); where.push(`mois = $${params.length}`); }
-    if (locataire_id) { params.push(Number(locataire_id)); where.push(`locataire_id = $${params.length}`); }
+    if (mois) { params.push(mois); where.push(`v.mois = $${params.length}`); }
+    if (locataire_id) { params.push(Number(locataire_id)); where.push(`v.locataire_id = $${params.length}`); }
     const { rows } = await pool.query(
-      `SELECT * FROM versements${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY mois DESC, date_versement, id`, params
+      `SELECT v.*, q.numero AS numero_quittance
+       FROM versements v LEFT JOIN quittances q ON q.versement_id = v.id
+       ${where.length ? ' WHERE ' + where.join(' AND ') : ''}
+       ORDER BY v.mois DESC, v.date_versement, v.id`, params
     );
     res.json(rows);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });
 
-// POST /api/versements  { locataire_id, mois, montant, date_versement?, mode?, note? }
+// GET /api/versements/:id/quittance  → PDF téléchargeable
+router.get('/:id/quittance', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const { rows } = await pool.query(
+      `SELECT v.*, q.numero, q.emis_le,
+              l.nom_locataire, l.numero_porte, b.nom AS nom_batiment, u.nom_complet AS emetteur
+       FROM versements v
+       JOIN quittances q ON q.versement_id = v.id
+       JOIN locataires l ON l.id = v.locataire_id
+       JOIN batiments b ON b.id = l.batiment_id
+       LEFT JOIN utilisateurs u ON u.id = q.emis_par
+       WHERE v.id = $1`, [id]
+    );
+    const r = rows[0];
+    if (!r) return res.status(404).json({ message: 'Versement ou quittance introuvable' });
+    const { rows: cfg } = await pool.query('SELECT cle, valeur FROM config');
+    const config = Object.fromEntries(cfg.map((c) => [c.cle, c.valeur]));
+    const dossier = dossierTemporaire();
+    const fichier = path.join(dossier, `quittance_${r.numero}.pdf`);
+    await genererQuittancePdf({
+      quittance: { numero: r.numero, emis_le: r.emis_le },
+      versement: r,
+      locataire: { nom_locataire: r.nom_locataire, numero_porte: r.numero_porte },
+      batiment: { nom_batiment: r.nom_batiment },
+      config, emetteur: r.emetteur,
+    }, fichier);
+    envoyerEtSupprimer(res, fichier, dossier);
+  } catch (e) { res.status(500).json({ message: 'Erreur serveur: ' + e.message }); }
+});
+
+// POST /api/versements  { locataire_id, mois, montant, date_versement?, mode?, note?, cle_idempotence? }
 router.post('/', requireAuth, SAISIE, async (req, res) => {
-  const { locataire_id, mois, montant, date_versement, mode, note } = req.body || {};
+  const { locataire_id, mois, montant, date_versement, mode, note, cle_idempotence } = req.body || {};
   const m = Math.round(Number(montant));
   if (!locataire_id || !MOIS_VALIDE.test(String(mois || ''))) return res.status(400).json({ message: 'Locataire et mois requis' });
   if (!(m > 0)) return res.status(400).json({ message: 'Le montant doit être supérieur à 0' });
@@ -36,9 +74,14 @@ router.post('/', requireAuth, SAISIE, async (req, res) => {
     const v = await ajouterVersement(pool, {
       locataire_id: Number(locataire_id), mois, montant: m, date_versement, mode,
       note: texteOuNull(note), created_by: req.utilisateur.id,
+      cle_idempotence: texteOuNull(cle_idempotence),
     });
-    await recalculerResume(mois);
-    res.status(201).json(v);
+    if (!v.existant) {
+      await recalculerResume(mois);
+      await journal(null, req, 'versement.cree', 'versement', v.id,
+        { locataire_id: v.locataire_id, mois: v.mois, montant: v.montant, mode: v.mode, quittance: v.numero_quittance });
+    }
+    res.status(v.existant ? 200 : 201).json(v);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur: ' + e.message }); }
 });
 
@@ -56,6 +99,7 @@ router.put('/note', requireAuth, SAISIE, async (req, res) => {
     } else {
       await pool.query('DELETE FROM notes_loyers WHERE locataire_id = $1 AND mois = $2', [Number(locataire_id), mois]);
     }
+    await journal(null, req, 'versement.note', 'locataire', Number(locataire_id), { mois, note });
     res.json({ ok: true, note });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });
@@ -63,9 +107,11 @@ router.put('/note', requireAuth, SAISIE, async (req, res) => {
 // DELETE /api/versements/:id
 router.delete('/:id', requireAuth, SAISIE, async (req, res) => {
   try {
-    const r = await pool.query('DELETE FROM versements WHERE id = $1 RETURNING mois', [Number(req.params.id)]);
+    const r = await pool.query('DELETE FROM versements WHERE id = $1 RETURNING *', [Number(req.params.id)]);
     if (!r.rows[0]) return res.status(404).json({ message: 'Versement introuvable' });
     await recalculerResume(r.rows[0].mois);
+    await journal(null, req, 'versement.supprime', 'versement', r.rows[0].id,
+      { locataire_id: r.rows[0].locataire_id, mois: r.rows[0].mois, montant: r.rows[0].montant });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

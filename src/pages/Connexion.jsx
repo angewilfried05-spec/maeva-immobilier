@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
-import { api, setToken } from '../utils/api.js';
+import { api, setSession } from '../utils/api.js';
 
 const CLE_SOUVENIR = 'maeva_souvenir';
 const DUREE_JOURS = 30;
@@ -31,7 +31,7 @@ export default function Connexion({ onConnecte }) {
     setErreur(null);
     try {
       const res = await api.login(utilisateur, motDePasse);
-      setToken(res.token);
+      setSession(res);
       if (souvenir) {
         localStorage.setItem(CLE_SOUVENIR, JSON.stringify({ exp: Date.now() + DUREE_JOURS * 86400000 }));
       } else {

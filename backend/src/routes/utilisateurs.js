@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { journal } = require('../services/journal');
+const { revoquerUtilisateur } = require('../services/tokens');
 
 const router = express.Router();
 const ROLES = ['admin', 'gerant', 'comptable', 'lecteur'];
@@ -29,6 +31,7 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
        VALUES ($1, $2, $3, $4, TRUE, TRUE) RETURNING id, username, nom_complet, role, actif`,
       [String(username).trim(), hash, String(nom_complet).trim(), role]
     );
+    await journal(null, req, 'utilisateur.cree', 'utilisateur', rows[0].id, { username: rows[0].username, role });
     res.status(201).json(rows[0]);
   } catch (e) {
     if (e.code === '23505') return res.status(409).json({ message: "Ce nom d'utilisateur existe déjà" });
@@ -47,6 +50,7 @@ router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
       const hash = await bcrypt.hash(String(password), 10);
       // Mot de passe fixé par l'admin : l'utilisateur devra le changer à sa prochaine connexion
       await pool.query('UPDATE utilisateurs SET password_hash = $1, doit_changer_mdp = TRUE WHERE id = $2', [hash, id]);
+      await revoquerUtilisateur(id); // sessions en cours révoquées : nouveau mot de passe = nouvelle connexion
     }
     const { rows } = await pool.query(
       `UPDATE utilisateurs
@@ -59,6 +63,8 @@ router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
       [nom_complet || null, role || null, actif === undefined ? null : actif, id]
     );
     if (!rows[0]) return res.status(404).json({ message: 'Utilisateur introuvable' });
+    if (rows[0].actif === false) await revoquerUtilisateur(id); // compte désactivé : sessions coupées
+    await journal(null, req, 'utilisateur.modifie', 'utilisateur', id, { role: rows[0].role, actif: rows[0].actif });
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });
@@ -68,8 +74,9 @@ router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (id === req.utilisateur.id) return res.status(400).json({ message: 'Vous ne pouvez pas supprimer votre propre compte' });
   try {
-    const r = await pool.query('DELETE FROM utilisateurs WHERE id = $1', [id]);
+    const r = await pool.query('DELETE FROM utilisateurs WHERE id = $1 RETURNING username', [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: 'Utilisateur introuvable' });
+    await journal(null, req, 'utilisateur.supprime', 'utilisateur', id, { username: r.rows[0].username });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ message: 'Erreur serveur' }); }
 });

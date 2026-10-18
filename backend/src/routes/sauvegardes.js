@@ -5,6 +5,7 @@ const os = require('os');
 const fs = require('fs');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { dossierSauvegardes, listerSauvegardes, creerSauvegarde, restaurer } = require('../services/sauvegarde');
+const { journal } = require('../services/journal');
 
 const router = express.Router();
 const upload = multer({ dest: path.join(os.tmpdir(), 'maeva-restauration'), limits: { fileSize: 200 * 1024 * 1024 } });
@@ -39,8 +40,11 @@ router.post('/restaurer', async (req, res) => {
   if (!NOM_VALIDE.test(nom)) return res.status(400).json({ message: 'Nom de sauvegarde invalide' });
   const fichier = path.join(dossierSauvegardes(), nom);
   if (!fs.existsSync(fichier)) return res.status(404).json({ message: 'Sauvegarde introuvable' });
-  try { res.json(await restaurer(JSON.parse(fs.readFileSync(fichier, 'utf8')))); }
-  catch (e) { res.status(400).json({ message: 'Restauration impossible : ' + e.message }); }
+  try {
+    const r = await restaurer(JSON.parse(fs.readFileSync(fichier, 'utf8')));
+    await journal(null, req, 'sauvegarde.restauration', 'sauvegarde', null, { source: nom });
+    res.json(r);
+  } catch (e) { res.status(400).json({ message: 'Restauration impossible : ' + e.message }); }
 });
 
 // POST /api/sauvegardes/restaurer-fichier  (fichier .json choisi par l'utilisateur, ex. clé USB)
