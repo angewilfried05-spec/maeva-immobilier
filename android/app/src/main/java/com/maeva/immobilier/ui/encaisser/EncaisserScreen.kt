@@ -1,0 +1,231 @@
+package com.maeva.immobilier.ui.encaisser
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.maeva.immobilier.MaevaApp
+import com.maeva.immobilier.data.api.Dashboard
+import com.maeva.immobilier.data.api.Locataire
+import com.maeva.immobilier.data.api.VersementBody
+import com.maeva.immobilier.data.local.VersementEnAttente
+import com.maeva.immobilier.data.sync.SyncWorker
+import com.maeva.immobilier.ui.theme.Vert
+import com.maeva.immobilier.ui.theme.fcfa
+import com.maeva.immobilier.ui.theme.moisFr
+import kotlinx.coroutines.launch
+import java.text.Normalizer
+import java.time.LocalDate
+import java.util.UUID
+
+private val MODES = listOf("Espèces", "Mobile Money", "Virement", "Chèque")
+
+private fun sansAccent(s: String): String =
+    Normalizer.normalize(s, Normalizer.Form.NFD).replace("\\p{M}".toRegex(), "").lowercase()
+
+/** Flux de caissier : locataire → montant → quittance (ou file hors-ligne). */
+@Composable
+fun EncaisserScreen(app: MaevaApp) {
+    val mois = LocalDate.now().toString().substring(0, 7)
+    val scope = rememberCoroutineScope()
+    var recherche by remember { mutableStateOf("") }
+    var choisi by remember { mutableStateOf<Locataire?>(null) }
+    var montant by remember { mutableStateOf("") }
+    var mode by remember { mutableStateOf("Espèces") }
+    var note by remember { mutableStateOf("") }
+    var enCours by remember { mutableStateOf(false) }
+    var quittance by remember { mutableStateOf<String?>(null) }
+    var info by remember { mutableStateOf<String?>(null) }
+    var erreur by remember { mutableStateOf<String?>(null) }
+    // Générée au choix du locataire : un renvoi ne crée jamais de doublon
+    var cle by remember { mutableStateOf<String?>(null) }
+
+    val dash by produceState<Dashboard?>(initialValue = null) {
+        try { value = app.reseau.api().dashboard(mois) } catch (_: Exception) { }
+    }
+    val actifs = dash?.locataires?.filter { it.statut != "Vide" } ?: emptyList()
+    val resultats = if (recherche.isBlank()) emptyList()
+        else actifs.filter {
+            sansAccent("${it.nom_locataire} ${it.numero_porte ?: ""}").contains(sansAccent(recherche))
+        }.take(8)
+
+    Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+        Text("Encaisser", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Mois comptable : ${moisFr(mois)}", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(12.dp))
+
+        if (dash?.alertes?.mois_cloture == true) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                Text("Mois clôturé : encaissement impossible", Modifier.padding(12.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+
+        if (quittance != null) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Versement enregistré", fontWeight = FontWeight.Bold, color = Vert)
+                    Text("Quittance $quittance", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(10.dp))
+                    Button(onClick = {
+                        choisi = null; quittance = null; montant = ""; note = ""; cle = null
+                    }) { Text("Nouvel encaissement") }
+                }
+            }
+        } else if (choisi == null) {
+            OutlinedTextField(
+                value = recherche, onValueChange = { recherche = it },
+                label = { Text("Locataire (nom ou porte)") },
+                singleLine = true, modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(6.dp))
+            LazyColumn(Modifier.height(320.dp)) {
+                items(resultats) { l ->
+                    val sit = dash?.situations?.get(l.id.toString())
+                    Row(
+                        Modifier.fillMaxWidth().clickable {
+                            choisi = l; recherche = ""; erreur = null
+                            cle = UUID.randomUUID().toString()
+                            montant = when {
+                                (sit?.dette ?: 0) > 0 -> sit!!.dette.toString()
+                                else -> (sit?.loyer ?: l.loyer_mensuel).toString()
+                            }
+                        }.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(l.nom_locataire, fontWeight = FontWeight.SemiBold)
+                            Text(l.numero_porte ?: "", style = MaterialTheme.typography.bodySmall)
+                        }
+                        when {
+                            sit == null -> {}
+                            sit.dette > 0 -> Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
+                                Text("Doit ${fcfa(sit.dette)}", Modifier.padding(4.dp))
+                            }
+                            else -> Badge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+                                Text("À jour", Modifier.padding(4.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            val l = choisi!!
+            Card {
+                Column(Modifier.padding(16.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(l.nom_locataire, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        TextButton(onClick = { choisi = null; cle = null }) { Text("Changer") }
+                    }
+                    val sit = dash?.situations?.get(l.id.toString())
+                    sit?.let {
+                        if (it.dette > 0) Text("Dette : ${fcfa(it.dette)} (${it.dette_mois} mois)",
+                            color = MaterialTheme.colorScheme.error)
+                        else if (it.paye_jusqu_a != null) Text("Payé jusqu'à ${moisFr(it.paye_jusqu_a)}", color = Vert)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = montant, onValueChange = { montant = it.filter { c -> c.isDigit() } },
+                        label = { Text("Montant (FCFA)") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        val loyer = sit?.loyer ?: l.loyer_mensuel
+                        listOf(1, 2, 3).forEach { n ->
+                            AssistChip(onClick = { montant = (loyer * n).toString() }, label = { Text("${n}m") })
+                        }
+                        if ((sit?.dette ?: 0) > 0) {
+                            AssistChip(onClick = { montant = sit!!.dette.toString() }, label = { Text("Dette") })
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text("Mode de paiement", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        MODES.forEach { m ->
+                            FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m) })
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = note, onValueChange = { note = it },
+                        label = { Text("Note (optionnel)") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    erreur?.let { Spacer(Modifier.height(8.dp)); Text(it, color = MaterialTheme.colorScheme.error) }
+                    info?.let { Spacer(Modifier.height(8.dp)); Text(it, color = Vert) }
+                    Spacer(Modifier.height(14.dp))
+                    Button(
+                        enabled = !enCours && (montant.toIntOrNull() ?: 0) > 0 && dash?.alertes?.mois_cloture != true,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val m = montant.toIntOrNull() ?: return@Button
+                            enCours = true; erreur = null; info = null
+                            scope.launch {
+                                try {
+                                    val v = app.reseau.api().versement(
+                                        VersementBody(
+                                            locataire_id = l.id, mois = mois, montant = m,
+                                            mode = mode, note = note.ifBlank { null },
+                                            cle_idempotence = cle,
+                                        )
+                                    )
+                                    quittance = v.numero_quittance ?: "n°${v.id}"
+                                } catch (e: Exception) {
+                                    // Hors-ligne : on met en file — la clé d'idempotence
+                                    // garantit qu'il ne sera jamais compté en double.
+                                    app.db.fileDao().ajouter(
+                                        VersementEnAttente(
+                                            cleIdempotence = cle ?: UUID.randomUUID().toString(),
+                                            locataireId = l.id, nomLocataire = l.nom_locataire,
+                                            mois = mois, montant = m, mode = mode,
+                                            note = note.ifBlank { null },
+                                        )
+                                    )
+                                    SyncWorker.lancerMaintenant(app)
+                                    info = "Pas de réseau : ${fcfa(m)} mis en file, envoyé automatiquement"
+                                    quittance = "en attente d'envoi"
+                                }
+                                enCours = false
+                            }
+                        },
+                    ) { Text(if (enCours) "Enregistrement…" else "Encaisser ${if (montant.isNotBlank()) fcfa(montant.toInt()) else ""}") }
+                }
+            }
+        }
+    }
+}

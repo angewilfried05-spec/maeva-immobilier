@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="maeva_bleu_fonce">#123A68</color>
+    <color name="maeva_bleu">#1A4F8B</color>
+    <color name="maeva_vert">#1E8A4C</color>
+    <color name="maeva_rouge">#C0392B</color>
+    <color name="maeva_orange">#D68910</color>
+</resources>
