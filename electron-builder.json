@@ -2,7 +2,7 @@
   "appId": "ci.maeva.immobilier",
   "productName": "MAEVA IMMOBILIER",
   "directories": { "output": "release" },
-  "files": ["dist/**/*", "electron/**/*", "backend/src/**/*", "backend/package.json", "backend/.env", "assets/**/*", "package.json"],
+  "files": ["dist/**/*", "electron/**/*", "backend/src/**/*", "backend/package.json", "assets/**/*", "package.json"],
   "win": {
     "target": [{ "target": "nsis", "arch": ["x64"] }],
     "icon": "build/icon.png"

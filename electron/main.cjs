@@ -54,8 +54,32 @@ function fermerSplash() {
   if (splash) { splash.close(); splash = null; }
 }
 
+// Mode local : backend/.env n'est PAS embarqué dans le package (secrets).
+// Les secrets sont générés et persistés par machine dans <userData>/desktop-data/.env.
+function preparerEnvLocal() {
+  const dir = path.join(app.getPath('userData'), 'desktop-data');
+  const envPath = path.join(dir, '.env');
+  fs.mkdirSync(dir, { recursive: true });
+  const vals = {};
+  try {
+    for (const l of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+      const m = l.match(/^([A-Z_]+)=(.*)$/);
+      if (m) vals[m[1]] = m[2];
+    }
+  } catch { /* premier démarrage */ }
+  if (!vals.JWT_SECRET) {
+    vals.JWT_SECRET = require('crypto').randomBytes(48).toString('hex');
+    fs.writeFileSync(envPath,
+      Object.entries(vals).map(([k, v]) => `${k}=${v}`).join('\n'), { mode: 0o600 });
+  }
+  for (const [k, v] of Object.entries(vals)) {
+    if (!process.env[k]) process.env[k] = v;
+  }
+}
+
 async function demarrerLocal() {
-  // Chargé seulement en mode local : le backend exige backend/.env (JWT_SECRET, PostgreSQL)
+  // Chargé seulement en mode local : secrets générés par machine (backend/.env non embarqué)
+  preparerEnvLocal();
   const { setup: autoSetup } = require('../backend/src/auto-setup');
   const { start: startBackend } = require('../backend/src/server');
   try {
