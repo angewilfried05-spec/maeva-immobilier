@@ -47,11 +47,36 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Corps JSON malformé → 400 propre au lieu du 500 générique
+app.use((err, _req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ message: 'Corps de requête JSON invalide', code: 'JSON_INVALIDE' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ message: 'Requête trop volumineuse', code: 'TROP_VOLUMINEUX' });
+  }
+  return next(err);
+});
+
+// Headers de sécurité (complètent ceux posés par Nginx en production)
+app.use((_req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()');
+  next();
+});
+// Les réponses d'API ne doivent jamais être mises en cache (données métier)
+app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'maeva-immobilier', version: '1.0.0' }));
 
 // Contrat d'API v1 (référence pour les clients web / Electron / Android)
+// openapi.json n'est servi qu'aux utilisateurs authentifiés : la carte
+// complète de l'API ne doit pas être publique.
+const { requireAuth } = require('./middleware/auth');
 app.get('/api/v1', (_req, res) => res.json({ version: '1', documentation: '/api/v1/openapi.json' }));
-app.get('/api/v1/openapi.json', (_req, res) => res.sendFile(path.join(__dirname, 'openapi.json')));
+app.get('/api/v1/openapi.json', requireAuth, (_req, res) => res.sendFile(path.join(__dirname, 'openapi.json')));
 app.use('/api/v1/audit', auditRoutes);
 
 // Vocabulaire v1 : les lignes « locataires » de la base sont les contrats

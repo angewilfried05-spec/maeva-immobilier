@@ -10,6 +10,9 @@ const router = express.Router();
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_BLOCK_MS = 5 * 60 * 1000;
 const tentatives = new Map();
+// Hash bcrypt factice : le compare tourne même si le compte n'existe pas
+// → le temps de réponse ne révèle pas si l'identifiant est valide.
+const HASH_INEXISTANT = bcrypt.hashSync('mot-de-passe-inexistant', 10);
 
 function cleTentative(req, username) {
   return `${req.ip}::${String(username || '').toLowerCase()}`;
@@ -38,7 +41,8 @@ router.post('/login', async (req, res) => {
       [username]
     );
     const u = rows[0];
-    const ok = u && u.actif && await bcrypt.compare(password, u.password_hash);
+    const hash = u && u.actif ? u.password_hash : HASH_INEXISTANT;
+    const ok = u && u.actif && await bcrypt.compare(password, hash);
     if (!ok) {
       const count = (etat?.count || 0) + 1;
       tentatives.set(cle, { count, blocqueJusque: count >= LOGIN_MAX_ATTEMPTS ? Date.now() + LOGIN_BLOCK_MS : 0 });

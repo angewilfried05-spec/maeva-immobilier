@@ -15,17 +15,25 @@ const cfg = {
   database: process.env.DB_NAME || 'maeva_immobilier',
 };
 
+const crypto = require('crypto');
+
+// Mot de passe initial : ADMIN_PASSWORD si fourni, sinon généré et affiché une fois.
 const ADMIN_DEFAULT = {
-  username: 'tahbiarmand',
-  password: 'Carla2008',
+  username: process.env.ADMIN_USERNAME || 'tahbiarmand',
+  password: process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString('base64url'),
+  genere: !process.env.ADMIN_PASSWORD,
   nom_complet: 'Tah Bi Armand',
 };
 
-// Utilisateurs supplémentaires pré-créés (modifiables/supprimables ensuite dans l'app)
-const UTILISATEURS_SUPP = [
-  { username: 'gerant', password: 'maeva2026', nom_complet: 'Gérant', role: 'gerant' },
-  { username: 'comptable', password: 'maeva2026', nom_complet: 'Comptable', role: 'comptable' },
-];
+// Comptes supplémentaires éventuels : SEED_USERS='user:mdp:Nom:role,user2:mdp2:...'
+const UTILISATEURS_SUPP = String(process.env.SEED_USERS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+  .map((s) => {
+    const [username, password, nom_complet, role] = s.split(':');
+    return { username, password, nom_complet: nom_complet || username, role: role || 'gerant' };
+  });
 
 async function setup() {
   // 1. Créer la base si elle n'existe pas (connexion au serveur via 'postgres')
@@ -90,7 +98,11 @@ async function setup() {
          VALUES ($1, $2, $3, 'admin', TRUE, TRUE)`,
         [ADMIN_DEFAULT.username, hash, ADMIN_DEFAULT.nom_complet]
       );
-      console.log('[auto-setup] Utilisateur admin créé');
+      if (ADMIN_DEFAULT.genere) {
+        console.log(`[auto-setup] Utilisateur admin créé — mot de passe initial : ${ADMIN_DEFAULT.password}`);
+      } else {
+        console.log('[auto-setup] Utilisateur admin créé');
+      }
     }
 
     // Utilisateurs supplémentaires

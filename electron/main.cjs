@@ -78,6 +78,15 @@ function preparerEnvLocal() {
 }
 
 async function demarrerLocal() {
+  // Le backend n'est pas embarqué dans les packages distribués (code source privé) :
+  // l'installeur fonctionne uniquement en mode distant. En dev, le backend reste
+  // présent dans le dépôt et le mode local continue de fonctionner.
+  const backendDir = path.join(__dirname, '..', 'backend', 'src');
+  if (!fs.existsSync(backendDir)) {
+    afficherErreur('Mode local indisponible',
+      'Cette version est prévue pour se connecter au serveur MAEVA.<br/><br/>Vérifiez votre connexion Internet puis relancez l\'application.');
+    return false;
+  }
   // Chargé seulement en mode local : secrets générés par machine (backend/.env non embarqué)
   preparerEnvLocal();
   const { setup: autoSetup } = require('../backend/src/auto-setup');

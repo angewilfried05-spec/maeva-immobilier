@@ -1,6 +1,7 @@
 // Crée l'utilisateur admin par défaut + la config initiale.
-// Usage : node src/seed.js
+// Usage : node src/seed.js   (ADMIN_PASSWORD pour choisir le mot de passe initial)
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const pool = require('./config/db');
 
 async function run() {
@@ -13,13 +14,14 @@ async function run() {
       "SELECT id FROM utilisateurs WHERE lower(username) = lower($1)", ['tahbiarmand']
     );
     if (rows.length === 0) {
-      const hash = await bcrypt.hash('Carla2008', 10);
+      const mdp = process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString('base64url');
+      const hash = await bcrypt.hash(mdp, 10);
       await client.query(
-        `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif)
-         VALUES ($1, $2, $3, 'admin', TRUE)`,
-        ['tahbiarmand', hash, 'Tah Bi Armand']
+        `INSERT INTO utilisateurs (username, password_hash, nom_complet, role, actif, doit_changer_mdp)
+         VALUES ($1, $2, $3, 'admin', TRUE, TRUE)`,
+        [process.env.ADMIN_USERNAME || 'tahbiarmand', hash, 'Tah Bi Armand']
       );
-      console.log('✓ Utilisateur admin créé : tahbiarmand / Carla2008');
+      console.log(`✓ Utilisateur admin créé : ${process.env.ADMIN_USERNAME || 'tahbiarmand'} / ${mdp}`);
     } else {
       console.log('• Utilisateur admin déjà existant');
     }
