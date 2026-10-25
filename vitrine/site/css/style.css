@@ -410,6 +410,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   font-weight: 600;
   margin: 0 0 14px;
 }
+.form-succes {
+  color: var(--wa);
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.champ-piege {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
 .form-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .lien-email {
   background: none;

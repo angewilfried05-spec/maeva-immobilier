@@ -175,9 +175,45 @@
     Object.values(champs).forEach(function (el) {
       el.addEventListener('input', function () { el.closest('.champ').classList.remove('invalide'); });
     });
+    var apiUrl = String(cfg.apiUrl || '').trim();
+    var succes = document.getElementById('form-succes');
+    var boutonEnvoi = form.querySelector('button[type="submit"]');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!valider()) return;
+      // Priorité à l'envoi direct sur le WhatsApp professionnel via le serveur ;
+      // en cas d'échec ou d'absence de configuration, repli sur wa.me.
+      if (apiUrl) {
+        boutonEnvoi.disabled = true;
+        boutonEnvoi.textContent = 'Envoi en cours…';
+        fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nom: champs.nom.value.trim(),
+            telephone: champs.telephone.value.trim(),
+            besoin: champs.besoin.value,
+            message: champs.message.value.trim(),
+            site_web: (document.getElementById('f-siteweb') || {}).value || '',
+          }),
+        }).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          if (succes) succes.hidden = false;
+          erreur.hidden = true;
+          form.reset();
+        }).catch(function () {
+          if (waOk) {
+            window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texteMessage()), '_blank', 'noopener');
+          } else {
+            erreur.textContent = 'Envoi impossible pour le moment. Utilisez l\'envoi par email.';
+            erreur.hidden = false;
+          }
+        }).finally(function () {
+          boutonEnvoi.disabled = false;
+          boutonEnvoi.textContent = 'Envoyer sur WhatsApp';
+        });
+        return;
+      }
       if (!waOk) {
         erreur.textContent = "Le numéro WhatsApp n'est pas encore configuré. Utilisez l'envoi par email.";
         erreur.hidden = false;

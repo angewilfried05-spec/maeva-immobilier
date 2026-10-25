@@ -49,6 +49,8 @@
           </p>
         </div>
         <form class="contact-form" id="form-contact" novalidate>
+          <!-- Honeypot anti-robots : invisible, jamais rempli par un humain -->
+          <input type="text" name="site_web" id="f-siteweb" tabindex="-1" autocomplete="off" class="champ-piege" aria-hidden="true" />
           <div class="champ">
             <label for="f-nom">Votre nom</label>
             <input id="f-nom" name="nom" type="text" autocomplete="name" required />
@@ -76,6 +78,7 @@
             <textarea id="f-message" name="message" rows="4"></textarea>
           </div>
           <p class="form-erreur" id="form-erreur" role="alert" hidden></p>
+          <p class="form-succes" id="form-succes" role="status" hidden>Votre demande est bien arrivée. Nous vous recontactons très vite.</p>
           <div class="form-actions">
             <button type="submit" class="btn btn-whatsapp btn-grand">Envoyer sur WhatsApp</button>
             <button type="button" class="lien-email" id="btn-email">Envoyer par email</button>

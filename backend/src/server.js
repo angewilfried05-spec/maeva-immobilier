@@ -21,6 +21,7 @@ const unitesRoutes = require('./routes/unites');
 const relancesRoutes = require('./routes/relances');
 const whatsappRoutes = require('./routes/whatsapp');
 const telechargementsRoutes = require('./routes/telechargements');
+const vitrineRoutes = require('./routes/vitrine');
 const { demarrerSiConfigure } = require('./services/whatsapp');
 const { demarrerSauvegardeAuto } = require('./services/sauvegarde');
 const { demarrerNotifications } = require('./services/notifications');
@@ -102,6 +103,7 @@ const ROUTES = [
   ['/sauvegardes', sauvegardesRoutes],
   ['/whatsapp', whatsappRoutes],
   ['/telechargements', telechargementsRoutes],
+  ['/vitrine', vitrineRoutes],
 ];
 for (const [chemin, r] of ROUTES) {
   app.use('/api' + chemin, r);

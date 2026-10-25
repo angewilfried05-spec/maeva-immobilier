@@ -26,6 +26,12 @@ window.VITRINE = {
   /* ---- Lien vers l'application de gestion (pied de page) ---- */
   appUrl: "https://maeva-immobilier.com",         // vide "" = lien "Espace gestion" masqué
 
+  /* ---- Envoi du formulaire directement sur le WhatsApp professionnel ----
+     Quand renseigné, le formulaire envoie la demande au serveur qui la fait
+     parvenir sur le WhatsApp de l'entreprise (le visiteur n'a pas besoin de
+     WhatsApp). Vide "" = le formulaire retombe sur l'ouverture de wa.me. */
+  apiUrl: "https://maeva-immobilier.com/api/vitrine/contact",
+
   /* ---- Photos de réalisations (page + lien de menu masqués si vide) ----
      1. Déposez la photo dans le dossier assets/photos/
      2. Ajoutez une ligne comme celles d'en-dessous, une par photo :
