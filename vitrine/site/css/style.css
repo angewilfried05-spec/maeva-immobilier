@@ -499,3 +499,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .hero-actions .btn { flex: 1 1 100%; }
   .hero-actions .lien-devis { flex: 1 1 100%; justify-content: center; }
 }
+
+/* Page de gestion des photos (app) + grille vitrine */
+.photo-ligne { display:flex; gap:16px; padding:14px 0; border-top:1px solid #E2E6EA; align-items:flex-start; }
+.photo-ligne img { width:140px; height:100px; object-fit:cover; border:1px solid #D8DCDF; }
+.photo-meta { flex:1; display:flex; flex-direction:column; gap:8px; }

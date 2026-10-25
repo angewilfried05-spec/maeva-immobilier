@@ -19,6 +19,7 @@ import EditeurDevis from './pages/EditeurDevis.jsx';
 import CatalogueArticles from './pages/CatalogueArticles.jsx';
 import Telechargements from './pages/Telechargements.jsx';
 import Sauvegardes from './pages/Sauvegardes.jsx';
+import Realisations from './pages/Realisations.jsx';
 import Connexion, { sessionSouvenirValide, effacerSouvenir } from './pages/Connexion.jsx';
 import { moisCourant } from './utils/format.js';
 import { api, getToken, deconnecter as deconnecterApi, AuthError, MODE } from './utils/api.js';
@@ -105,7 +106,7 @@ export default function App() {
 
   const props = { data, reload, mois, setMois, setPage, utilisateur };
   const estAdmin = utilisateur.role === 'admin';
-  const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs'], ['whatsapp', 'WhatsApp'], ['sauvegardes', 'Sauvegardes']] : PAGES;
+  const pagesAffichees = estAdmin ? [...PAGES, ['utilisateurs', 'Utilisateurs'], ['whatsapp', 'WhatsApp'], ['vitrine-photos', 'Site vitrine'], ['sauvegardes', 'Sauvegardes']] : PAGES;
 
   return (
     <>
@@ -157,6 +158,7 @@ export default function App() {
           {estAdmin && <Route path="/utilisateurs" element={<Utilisateurs {...props} />} />}
           {estAdmin && <Route path="/whatsapp" element={<WhatsApp {...props} />} />}
           {estAdmin && <Route path="/sauvegardes" element={<Sauvegardes {...props} onRestaure={deconnecter} />} />}
+          {estAdmin && <Route path="/vitrine-photos" element={<Realisations />} />}
           <Route path="*" element={<Navigate to="/tableau-de-bord" replace />} />
         </Routes>
       </main>

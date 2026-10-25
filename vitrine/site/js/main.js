@@ -16,6 +16,10 @@
   var horaires = String(cfg.horaires || '').trim();
   var appUrl = String(cfg.appUrl || '').trim();
   var photos = Array.isArray(cfg.photos) ? cfg.photos.filter(function (p) { return p && p.src; }) : [];
+  // Les photos publiées depuis l'app de gestion priment sur config.js
+  var photosServeur = fetch('photos.json').then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (l) { return Array.isArray(l) && l.length ? l : null; })
+    .catch(function () { return null; });
 
   /* ---- Téléphone principal : tous les boutons "Appeler" ---- */
   var telOk = tel.length >= 8;
@@ -84,43 +88,42 @@
   });
 
   /* ---- Réalisations : lien de menu masqué sans photo ; page remplie sinon ---- */
-  var liensPhotos = document.querySelectorAll('[data-photo-section]');
-  if (photos.length === 0) {
-    liensPhotos.forEach(function (a) { a.hidden = true; });
-    var pagePhotos = document.querySelector('[data-photo-page]');
-    if (pagePhotos) {
+  function afficherPhotos(liste) {
+    var liensPhotos = document.querySelectorAll('[data-photo-section]');
+    if (liste.length === 0) {
+      liensPhotos.forEach(function (a) { a.hidden = true; });
       var vide = document.querySelector('[data-photos-vide]');
       if (vide) vide.hidden = false;
+      return;
     }
-  } else {
     var grille = document.querySelector('[data-photos]');
-    if (grille) {
-      photos.forEach(function (p) {
-        var figure = document.createElement('figure');
-        figure.className = 'photo-projet';
-        var img = document.createElement('img');
-        img.src = p.src;
-        img.alt = p.alt || 'Réalisation MAEVA IMMOBILIER';
-        img.loading = 'lazy';
-        figure.appendChild(img);
-        if (p.titre || p.texte) {
-          var cap = document.createElement('figcaption');
-          if (p.titre) {
-            var t = document.createElement('strong');
-            t.textContent = p.titre;
-            cap.appendChild(t);
-          }
-          if (p.texte) {
-            var tx = document.createElement('span');
-            tx.textContent = p.texte;
-            cap.appendChild(tx);
-          }
-          figure.appendChild(cap);
+    if (!grille) return;
+    liste.forEach(function (p) {
+      var figure = document.createElement('figure');
+      figure.className = 'photo-projet';
+      var img = document.createElement('img');
+      img.src = p.src;
+      img.alt = p.alt || 'Réalisation MAEVA IMMOBILIER';
+      img.loading = 'lazy';
+      figure.appendChild(img);
+      if (p.titre || p.texte) {
+        var cap = document.createElement('figcaption');
+        if (p.titre) {
+          var t = document.createElement('strong');
+          t.textContent = p.titre;
+          cap.appendChild(t);
         }
-        grille.appendChild(figure);
-      });
-    }
+        if (p.texte) {
+          var tx = document.createElement('span');
+          tx.textContent = p.texte;
+          cap.appendChild(tx);
+        }
+        figure.appendChild(cap);
+      }
+      grille.appendChild(figure);
+    });
   }
+  photosServeur.then(function (l) { afficherPhotos(l || photos); });
 
   /* ---- Lien de menu de la page courante ---- */
   var page = location.pathname.split('/').pop() || 'index.html';
