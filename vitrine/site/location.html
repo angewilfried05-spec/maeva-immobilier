@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Location — MAEVA IMMOBILIER</title>
+  <meta name="description" content="Bâtiments, locaux et portes disponibles à la location avec MAEVA IMMOBILIER à Abidjan. Visites sur rendez-vous." />
+  <link rel="icon" type="image/png" href="assets/logo-embleme.png" />
+  <link rel="apple-touch-icon" href="assets/logo-embleme.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a class="aller-contenu" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <a class="marque" href="index.html">
+      <img class="marque-icone" src="assets/logo-embleme.png" alt="" width="36" height="36" />
+      <span class="marque-nom">MAEVA IMMOBILIER</span>
+    </a>
+    <nav class="nav" aria-label="Menu principal">
+      <a href="activites.html" data-nav="activites">Activités</a>
+      <a href="devis.html" data-nav="devis">Devis</a>
+      <a href="location.html" data-nav="location" data-lien-collection="locations">Location</a>
+      <a href="realisations.html" data-nav="realisations" data-lien-collection="photos">Réalisations</a>
+      <a href="contact.html" data-nav="contact">Contact</a>
+      <a class="nav-gestion" href="#" data-app-url>Espace gestion</a>
+    </nav>
+    <a class="btn btn-plein btn-appeler" href="#" data-tel>Appeler</a>
+  </header>
+
+  <main id="contenu">
+    <section class="section" id="location" data-collection-page data-collection="locations">
+      <h1 class="section-titre">Location</h1>
+      <p class="page-vide">Bâtiments, locaux et portes disponibles à la location. Visites sur rendez-vous.</p>
+      <div class="photos-grille" data-grille></div>
+      <p class="page-vide" data-grille-vide hidden>Aucune offre de location publiée pour le moment.</p>
+      <p class="page-suite"><a class="lien-devis" href="contact.html">Demander une visite</a></p>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <p>© <span data-annee></span> MAEVA IMMOBILIER — Gestion et construction bâtiment</p>
+    <a class="lien-gestion" href="#" data-app-url>Espace gestion</a>
+  </footer>
+
+  <div class="barre-mobile" aria-hidden="false">
+    <a class="btn btn-plein" href="#" data-tel>Appeler</a>
+    <a class="btn btn-whatsapp" href="#" data-whatsapp>WhatsApp</a>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

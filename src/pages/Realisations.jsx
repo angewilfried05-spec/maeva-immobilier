@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../utils/api.js';
 
-// Gestion des photos de la page "Réalisations" du site vitrine.
-// Les images partent sur le serveur (dossier vitrine), le site les lit via photos.json.
-export default function Realisations() {
+// Gestion des images du site vitrine (www.maeva-immobilier.com) :
+// onglet "Réalisations" (photos/) et onglet "Location" (locations/).
+const COLLECTIONS = [
+  { cle: 'photos',     libelle: 'Réalisations', texteIntro: 'Photos de chantiers et projets — page « Réalisations » du site.' },
+  { cle: 'locations',  libelle: 'Location',     texteIntro: 'Bâtiments, locaux et portes à louer — page « Location » du site.' },
+];
+
+function SectionCollection({ collection }) {
   const [photos, setPhotos] = useState([]);
   const [fichier, setFichier] = useState(null);
   const [titre, setTitre] = useState('');
@@ -12,23 +17,26 @@ export default function Realisations() {
   const [erreur, setErreur] = useState('');
   const [info, setInfo] = useState('');
 
-  const charger = () => api.get('/api/vitrine/photos').then(setPhotos).catch((e) => setErreur(e.message));
-  useEffect(() => { charger(); }, []);
+  const charger = useCallback(
+    () => api.get(`/api/vitrine/${collection.cle}`).then(setPhotos).catch((e) => setErreur(e.message)),
+    [collection.cle],
+  );
+  useEffect(() => { charger(); }, [charger]);
 
   async function envoyer(e) {
     e.preventDefault();
-    if (!fichier) { setErreur('Choisissez une photo'); return; }
+    if (!fichier) { setErreur('Choisissez une image'); return; }
     setChargement(true); setErreur(''); setInfo('');
     try {
       const fd = new FormData();
       fd.append('photo', fichier);
       fd.append('titre', titre);
       fd.append('texte', texte);
-      fd.append('alt', titre || 'Réalisation MAEVA IMMOBILIER');
-      await api.upload('/api/vitrine/photos', fd);
+      fd.append('alt', titre || 'MAEVA IMMOBILIER');
+      await api.upload(`/api/vitrine/${collection.cle}`, fd);
       setFichier(null); setTitre(''); setTexte('');
       e.target.reset();
-      setInfo('Photo publiée sur le site vitrine.');
+      setInfo('Publié sur le site vitrine.');
       charger();
     } catch (err) { setErreur(err.message); }
     finally { setChargement(false); }
@@ -37,35 +45,31 @@ export default function Realisations() {
   async function supprimer(p) {
     if (!window.confirm(`Supprimer « ${p.titre || p.src} » du site vitrine ?`)) return;
     try {
-      await api.del('/api/vitrine/photos/' + p.src.split('/').pop());
+      await api.del(`/api/vitrine/${collection.cle}/` + p.src.split('/').pop());
       charger();
     } catch (err) { setErreur(err.message); }
   }
 
   async function sauverLegende(p) {
     try {
-      await api.put('/api/vitrine/photos/' + p.src.split('/').pop(), { titre: p.titre, texte: p.texte });
+      await api.put(`/api/vitrine/${collection.cle}/` + p.src.split('/').pop(), { titre: p.titre, texte: p.texte });
       setInfo('Légende enregistrée.');
     } catch (err) { setErreur(err.message); }
   }
 
   return (
-    <div>
-      <h2>Photos du site vitrine</h2>
-      <p className="texte-secondaire">
-        Ces photos s'affichent sur la page « Réalisations » du site public (www.maeva-immobilier.com).
-      </p>
-
+    <>
+      <p className="texte-secondaire">{collection.texteIntro}</p>
       <div className="panneau">
-        <h3>Ajouter une réalisation</h3>
-        <form onSubmit={envoyer} encType="multipart/form-data">
+        <h3>Ajouter</h3>
+        <form onSubmit={envoyer}>
           <div className="champ">
-            <label>Photo (jpg, png, webp — 15 Mo max)</label>
+            <label>Image (jpg, png, webp — 15 Mo max)</label>
             <input type="file" accept="image/jpeg,image/png,image/webp"
               onChange={(e) => setFichier(e.target.files[0] || null)} />
           </div>
           <div className="champ">
-            <label>Titre du projet</label>
+            <label>Titre</label>
             <input value={titre} onChange={(e) => setTitre(e.target.value)} placeholder="Ex. Clôture d'une cour" />
           </div>
           <div className="champ">
@@ -82,8 +86,10 @@ export default function Realisations() {
       </div>
 
       <div className="panneau">
-        <h3>Photos publiées ({photos.length})</h3>
-        {photos.length === 0 && <p className="texte-secondaire">Aucune photo — la page « Réalisations » est masquée sur le site.</p>}
+        <h3>Publiés ({photos.length})</h3>
+        {photos.length === 0 && (
+          <p className="texte-secondaire">Vide — le lien de cette page est masqué sur le site.</p>
+        )}
         {photos.map((p) => {
           const cle = p.src.split('/').pop();
           return (
@@ -103,6 +109,26 @@ export default function Realisations() {
           );
         })}
       </div>
+    </>
+  );
+}
+
+export default function Realisations() {
+  const [onglet, setOnglet] = useState('photos');
+  const collection = COLLECTIONS.find((c) => c.cle === onglet);
+  return (
+    <div>
+      <h2>Site vitrine</h2>
+      <div className="onglets">
+        {COLLECTIONS.map((c) => (
+          <button key={c.cle}
+            className={'onglet' + (onglet === c.cle ? ' actif' : '')}
+            onClick={() => setOnglet(c.cle)}>
+            {c.libelle}
+          </button>
+        ))}
+      </div>
+      <SectionCollection key={collection.cle} collection={collection} />
     </div>
   );
 }

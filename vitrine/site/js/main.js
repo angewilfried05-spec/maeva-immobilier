@@ -16,10 +16,13 @@
   var horaires = String(cfg.horaires || '').trim();
   var appUrl = String(cfg.appUrl || '').trim();
   var photos = Array.isArray(cfg.photos) ? cfg.photos.filter(function (p) { return p && p.src; }) : [];
-  // Les photos publiées depuis l'app de gestion priment sur config.js
-  var photosServeur = fetch('photos.json').then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (l) { return Array.isArray(l) && l.length ? l : null; })
-    .catch(function () { return null; });
+  // Les images publiées depuis l'app de gestion priment sur config.js.
+  // Collections : "photos" (Réalisations) et "locations" (Location).
+  function chargerCollection(nom, defaut) {
+    return fetch(nom + '.json').then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (l) { return Array.isArray(l) && l.length ? l : defaut; })
+      .catch(function () { return defaut; });
+  }
 
   /* ---- Téléphone principal : tous les boutons "Appeler" ---- */
   var telOk = tel.length >= 8;
@@ -87,16 +90,19 @@
     else lienApp.hidden = true;
   });
 
-  /* ---- Réalisations : lien de menu masqué sans photo ; page remplie sinon ---- */
-  function afficherPhotos(liste) {
-    var liensPhotos = document.querySelectorAll('[data-photo-section]');
+  /* ---- Collections d'images : lien de menu masqué si vide ; grille remplie ---- */
+  function afficherCollection(nom, liste) {
+    document.querySelectorAll('[data-lien-collection="' + nom + '"]').forEach(function (a) {
+      a.hidden = liste.length === 0;
+    });
+    var pageColl = document.querySelector('[data-collection-page]');
+    if (!pageColl || pageColl.getAttribute('data-collection') !== nom) return;
     if (liste.length === 0) {
-      liensPhotos.forEach(function (a) { a.hidden = true; });
-      var vide = document.querySelector('[data-photos-vide]');
+      var vide = document.querySelector('[data-grille-vide]');
       if (vide) vide.hidden = false;
       return;
     }
-    var grille = document.querySelector('[data-photos]');
+    var grille = document.querySelector('[data-grille]');
     if (!grille) return;
     liste.forEach(function (p) {
       var figure = document.createElement('figure');
@@ -123,7 +129,8 @@
       grille.appendChild(figure);
     });
   }
-  photosServeur.then(function (l) { afficherPhotos(l || photos); });
+  chargerCollection('photos', photos).then(function (l) { afficherCollection('photos', l); });
+  chargerCollection('locations', []).then(function (l) { afficherCollection('locations', l); });
 
   /* ---- Lien de menu de la page courante ---- */
   var page = location.pathname.split('/').pop() || 'index.html';
