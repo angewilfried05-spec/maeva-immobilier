@@ -309,6 +309,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: block;
   border: 1px solid #D8DCDF;
 }
+.photo-projet { margin: 0; }
+.photo-projet figcaption {
+  padding: 8px 2px 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--encre);
+}
+.photo-projet figcaption strong {
+  display: block;
+  font-weight: 600;
+  color: var(--marine);
+}
+.photo-projet figcaption span { color: #4A5764; }
 
 /* ================= Contact ================= */
 .contact {

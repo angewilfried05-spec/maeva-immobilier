@@ -26,13 +26,19 @@ window.VITRINE = {
   /* ---- Lien vers l'application de gestion (pied de page) ---- */
   appUrl: "https://maeva-immobilier.com",         // vide "" = lien "Espace gestion" masqué
 
-  /* ---- Photos de réalisations (section + lien de menu masqués si vide) ----
-     Déposez les fichiers dans assets/photos/ puis ajoutez une ligne par photo.
-     "src"  : chemin du fichier
-     "alt"  : courte description affichée si l'image ne se charge pas  */
+  /* ---- Photos de réalisations (page + lien de menu masqués si vide) ----
+     1. Déposez la photo dans le dossier assets/photos/
+     2. Ajoutez une ligne comme celles d'en-dessous, une par photo :
+        "src"    : chemin du fichier (assets/photos/nom-du-fichier.jpg)
+        "alt"    : courte description (affichée si l'image ne se charge pas)
+        "titre"  : nom du projet — optionnel, affiché sous la photo
+        "texte"  : 1-2 phrases sur le projet — optionnel, affiché sous le titre
+     Décommentez les exemples (retirez les "//" en début de ligne) puis remplacez.  */
   photos: [
-    // { src: "assets/photos/chantier-1.jpg", alt: "Chantier de clôture, Abidjan" },
-    // { src: "assets/photos/chantier-2.jpg", alt: "Rénovation d'un bâtiment" },
+    // { src: "assets/photos/chantier-1.jpg", alt: "Clôture d'une cour, Abidjan",
+    //   titre: "Clôture d'une cour", texte: "Clôture en parpaings avec portail, livrée à Angré." },
+    // { src: "assets/photos/chantier-2.jpg", alt: "Rénovation d'un bâtiment",
+    //   titre: "Rénovation complète", texte: "Reprise toiture, électricité et peinture d'un R+2." },
   ],
 
 };

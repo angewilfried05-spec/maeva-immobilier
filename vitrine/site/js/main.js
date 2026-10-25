@@ -24,7 +24,7 @@
     a.setAttribute('href', 'tel:+' + tel);
   });
   var telLien = document.querySelector('[data-tel-affiche]');
-  if (telLien) telLien.textContent = telAffiche || ('+' + tel);
+  if (telLien && telOk) telLien.textContent = telAffiche || ('+' + tel);
   if (!telOk) {
     var barreMobile = document.querySelector('.barre-mobile');
     if (barreMobile) barreMobile.querySelectorAll('.btn-plein').forEach(function (b) { b.hidden = true; });
@@ -66,11 +66,13 @@
 
   /* ---- Adresse / horaires ---- */
   var ligneAdresse = document.querySelector('[data-adresse-ligne]');
-  if (adresse) document.querySelector('[data-adresse]').textContent = adresse;
+  var elAdresse = document.querySelector('[data-adresse]');
+  if (adresse && elAdresse) elAdresse.textContent = adresse;
   else if (ligneAdresse) ligneAdresse.hidden = true;
 
   var ligneHoraires = document.querySelector('[data-horaires-ligne]');
-  if (horaires) document.querySelector('[data-horaires]').textContent = horaires;
+  var elHoraires = document.querySelector('[data-horaires]');
+  if (horaires && elHoraires) elHoraires.textContent = horaires;
   else if (ligneHoraires) ligneHoraires.hidden = true;
 
   /* ---- Pied de page ---- */
@@ -94,11 +96,28 @@
     var grille = document.querySelector('[data-photos]');
     if (grille) {
       photos.forEach(function (p) {
+        var figure = document.createElement('figure');
+        figure.className = 'photo-projet';
         var img = document.createElement('img');
         img.src = p.src;
         img.alt = p.alt || 'Réalisation MAEVA IMMOBILIER';
         img.loading = 'lazy';
-        grille.appendChild(img);
+        figure.appendChild(img);
+        if (p.titre || p.texte) {
+          var cap = document.createElement('figcaption');
+          if (p.titre) {
+            var t = document.createElement('strong');
+            t.textContent = p.titre;
+            cap.appendChild(t);
+          }
+          if (p.texte) {
+            var tx = document.createElement('span');
+            tx.textContent = p.texte;
+            cap.appendChild(tx);
+          }
+          figure.appendChild(cap);
+        }
+        grille.appendChild(figure);
       });
     }
   }
