@@ -348,3 +348,11 @@ input.montant { width: 140px; text-align: right; }
   .connexion-carte { padding: 30px 24px; width: auto; flex: none; }
   .connexion-logo { width: 180px; }
 }
+
+/* Onglets (page Site vitrine) */
+.onglets { display:flex; gap:8px; margin:0 0 16px; }
+.onglet {
+  padding:8px 18px; border:1px solid #C9D2DA; background:#fff; color:#33414F;
+  font:inherit; font-weight:600; border-radius:8px; cursor:pointer;
+}
+.onglet.actif { background:#122E4A; border-color:#122E4A; color:#fff; }
