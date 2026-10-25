@@ -7,13 +7,17 @@
 
 window.VITRINE = {
 
-  /* ---- Numéro de téléphone (OBLIGATOIRE pour les boutons) ---- */
-  telephoneAffiche: "+225 01 02 03 04 05",        // tel qu'affiché aux visiteurs
-  telephoneInternational: "2250102030405",        // chiffres uniquement, SANS "+" ni espaces (code pays inclus)
+  /* ---- Numéro de téléphone principal (OBLIGATOIRE pour les boutons) ---- */
+  telephoneAffiche: "+225 07 07 15 43 36",        // tel qu'affiché aux visiteurs
+  telephoneInternational: "2250707154336",        // chiffres uniquement, SANS "+" ni espaces (code pays inclus)
+
+  /* ---- Second numéro (affiché dans la page Contact ; vide "" = masqué) ---- */
+  telephone2Affiche: "+225 05 46 71 69 74",
+  telephone2International: "2250546716974",
 
   /* ---- Email de contact ---- */
-  email: "contact@maeva-immobilier.com",          // vide "" = masqué
-  emailAffiche: "contact@maeva-immobilier.com",   // texte affiché (peut être identique)
+  email: "tahbiarmand86@gmail.com",               // vide "" = masqué
+  emailAffiche: "tahbiarmand86@gmail.com",        // texte affiché (peut être identique)
 
   /* ---- Adresse et horaires ---- */
   adresse: "Abidjan, Côte d'Ivoire",              // ex. "Angré, Abidjan"

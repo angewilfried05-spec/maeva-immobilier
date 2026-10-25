@@ -17,24 +17,22 @@
 <body>
   <a class="aller-contenu" href="#contenu">Aller au contenu</a>
 
-  <!-- ================= En-tête ================= -->
   <header class="entete">
-    <a class="marque" href="#haut">
+    <a class="marque" href="index.html">
       <img class="marque-icone" src="assets/logo-embleme.png" alt="" width="36" height="36" />
       <span class="marque-nom">MAEVA IMMOBILIER</span>
     </a>
     <nav class="nav" aria-label="Menu principal">
-      <a href="#activites">Activités</a>
-      <a href="#devis">Devis</a>
-      <a href="#realisations" data-photo-section> Réalisations</a>
-      <a href="#contact">Contact</a>
+      <a href="activites.html" data-nav="activites">Activités</a>
+      <a href="devis.html" data-nav="devis">Devis</a>
+      <a href="realisations.html" data-nav="realisations" data-photo-section>Réalisations</a>
+      <a href="contact.html" data-nav="contact">Contact</a>
       <a class="nav-gestion" href="#" data-app-url>Espace gestion</a>
     </nav>
     <a class="btn btn-plein btn-appeler" href="#" data-tel>Appeler</a>
   </header>
 
   <main id="contenu">
-    <!-- ================= Hero ================= -->
     <section class="hero" id="haut">
       <div class="hero-grille">
         <div class="hero-texte">
@@ -43,12 +41,11 @@
           <div class="hero-actions">
             <a class="btn btn-plein" href="#" data-tel>Appeler</a>
             <a class="btn btn-whatsapp" href="#" data-whatsapp>Écrire sur WhatsApp</a>
-            <a class="lien-devis" href="#contact">Demander un devis</a>
+            <a class="lien-devis" href="contact.html">Demander un devis</a>
           </div>
         </div>
         <div class="hero-skyline" aria-hidden="true">
           <svg class="skyline" viewBox="0 0 640 340" role="img" aria-label="Silhouette d'immeubles">
-            <!-- Immeuble 1 (gauche, bas) -->
             <g class="bat bat-1">
               <rect x="18" y="200" width="90" height="140" fill="#1E4E78"/>
               <g fill="#D9B65B">
@@ -57,7 +54,6 @@
                 <rect x="30" y="280" width="16" height="18"/><rect x="56" y="280" width="16" height="18"/><rect x="82" y="280" width="16" height="18"/>
               </g>
             </g>
-            <!-- Immeuble 2 -->
             <g class="bat bat-2">
               <rect x="130" y="150" width="95" height="190" fill="#122E4A"/>
               <g fill="#D9B65B">
@@ -68,7 +64,6 @@
                 <rect x="143" y="286" width="15" height="16"/><rect x="169" y="286" width="15" height="16"/><rect x="195" y="286" width="15" height="16"/>
               </g>
             </g>
-            <!-- Tour centrale avec antenne -->
             <g class="bat bat-3">
               <rect x="312" y="18" width="4" height="42" fill="#B8892F"/>
               <circle cx="314" cy="16" r="5" fill="#B8892F"/>
@@ -84,7 +79,6 @@
                 <rect x="281" y="276" width="14" height="16"/><rect x="307" y="276" width="14" height="16"/><rect x="333" y="276" width="14" height="16"/>
               </g>
             </g>
-            <!-- Immeuble 4 -->
             <g class="bat bat-4">
               <rect x="382" y="130" width="105" height="210" fill="#1E4E78"/>
               <rect x="382" y="130" width="105" height="8" fill="#122E4A"/>
@@ -96,7 +90,6 @@
                 <rect x="396" y="280" width="15" height="16"/><rect x="423" y="280" width="15" height="16"/><rect x="450" y="280" width="15" height="16"/>
               </g>
             </g>
-            <!-- Immeuble 5 (droite, bas) -->
             <g class="bat bat-5">
               <rect x="510" y="215" width="100" height="125" fill="#122E4A"/>
               <g fill="#D9B65B">
@@ -105,150 +98,34 @@
                 <rect x="524" y="294" width="15" height="16"/><rect x="551" y="294" width="15" height="16"/><rect x="578" y="294" width="15" height="16"/>
               </g>
             </g>
-            <!-- Ligne de sol -->
             <rect x="0" y="338" width="640" height="2" fill="#B8892F"/>
           </svg>
         </div>
       </div>
     </section>
 
-    <!-- ================= Activités ================= -->
-    <section class="section" id="activites">
-      <h2 class="section-titre">Nos activités</h2>
+    <section class="section section-accueil">
+      <h2 class="section-titre">Ce que nous faisons</h2>
       <div class="activite">
-        <h3>Location et vente de bâtiments</h3>
-        <div>
-          <p>Des locaux et des portes à louer, des bâtiments à vendre.</p>
-          <ul>
-            <li>Locaux et portes disponibles à la location</li>
-            <li>Bâtiments à vendre</li>
-            <li>Visites sur rendez-vous</li>
-          </ul>
-        </div>
+        <h3><a href="activites.html">Nos activités</a></h3>
+        <div><p>Location et vente de bâtiments, gestion immobilière, construction, rénovation et travaux publics.</p></div>
       </div>
       <div class="activite">
-        <h3>Gestion immobilière</h3>
-        <div>
-          <p>Nous gérons vos biens et vous rendons compte chaque mois.</p>
-          <ul>
-            <li>Suivi mensuel des loyers</li>
-            <li>Relance des arriérés</li>
-            <li>Entretien, gardiennage et nettoyage</li>
-            <li>Point financier mensuel</li>
-          </ul>
-        </div>
+        <h3><a href="devis.html">Un devis détaillé</a></h3>
+        <div><p>Matériaux et main d'œuvre séparés, ligne par ligne, avec le total en toutes lettres.</p></div>
       </div>
       <div class="activite">
-        <h3>Construction et rénovation</h3>
-        <div>
-          <p>Du neuf ou de la remise en état, de la clôture au bâtiment complet.</p>
-          <ul>
-            <li>Construction neuve</li>
-            <li>Rénovation</li>
-            <li>Clôtures</li>
-            <li>Maçonnerie, ferraillage, menuiserie</li>
-          </ul>
-        </div>
-      </div>
-      <div class="activite">
-        <h3>Travaux publics et génie civil</h3>
-        <div>
-          <p>Les ouvrages qui préparent et structurent vos terrains.</p>
-          <ul>
-            <li>Fouilles et terrassement</li>
-            <li>Ouvrages de génie civil</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= Devis ================= -->
-    <section class="section" id="devis">
-      <h2 class="section-titre">Un devis détaillé, ligne par ligne</h2>
-      <div class="devis-grille">
-        <div class="devis-texte">
-          <p>Chaque devis que nous établissons sépare <strong>les matériaux et la main d'œuvre</strong>. Pour chaque ligne : la quantité et le prix unitaire. Et le total est écrit en toutes lettres.</p>
-          <p>Vous savez exactement ce que vous payez, avant que les travaux commencent.</p>
-        </div>
-        <ol class="etapes">
-          <li><span class="etape-num">1</span><div><strong>Vous nous contactez</strong><br/>Par téléphone, WhatsApp ou le formulaire en bas de page.</div></li>
-          <li><span class="etape-num">2</span><div><strong>On cerne le besoin</strong><br/>Un échange, et une visite si nécessaire.</div></li>
-          <li><span class="etape-num">3</span><div><strong>Devis détaillé</strong><br/>Matériaux et main d'œuvre, ligne par ligne.</div></li>
-          <li><span class="etape-num">4</span><div><strong>Travaux après accord</strong><br/>Le chantier démarre quand vous validez.</div></li>
-        </ol>
-      </div>
-    </section>
-
-    <!-- ================= Réalisations ================= -->
-    <section class="section" id="realisations" data-photo-section hidden>
-      <h2 class="section-titre">Réalisations</h2>
-      <div class="photos-grille" data-photos></div>
-    </section>
-
-    <!-- ================= Contact ================= -->
-    <section class="contact" id="contact">
-      <h2 class="section-titre section-titre-clair">Contactez-nous</h2>
-      <div class="contact-grille">
-        <div class="contact-infos">
-          <a class="contact-tel" href="#" data-tel data-tel-affiche></a>
-          <a class="btn btn-whatsapp btn-grand" href="#" data-whatsapp>WhatsApp</a>
-          <p class="contact-ligne" data-email-ligne>
-            <span class="contact-label">Email</span>
-            <a href="#" data-email></a>
-          </p>
-          <p class="contact-ligne" data-adresse-ligne>
-            <span class="contact-label">Adresse</span>
-            <span data-adresse></span>
-          </p>
-          <p class="contact-ligne" data-horaires-ligne>
-            <span class="contact-label">Horaires</span>
-            <span data-horaires></span>
-          </p>
-        </div>
-        <form class="contact-form" id="form-contact" novalidate>
-          <div class="champ">
-            <label for="f-nom">Votre nom</label>
-            <input id="f-nom" name="nom" type="text" autocomplete="name" required />
-          </div>
-          <div class="champ">
-            <label for="f-tel">Votre téléphone</label>
-            <input id="f-tel" name="telephone" type="tel" autocomplete="tel" required />
-          </div>
-          <div class="champ">
-            <label for="f-besoin">Votre besoin</label>
-            <select id="f-besoin" name="besoin" required>
-              <option value="">— Choisissez —</option>
-              <option>Construction</option>
-              <option>Rénovation</option>
-              <option>Clôture</option>
-              <option>Louer un bâtiment ou un local</option>
-              <option>Acheter un bâtiment</option>
-              <option>Gestion de mes biens</option>
-              <option>Travaux publics / génie civil</option>
-              <option>Autre</option>
-            </select>
-          </div>
-          <div class="champ">
-            <label for="f-message">Votre message</label>
-            <textarea id="f-message" name="message" rows="4"></textarea>
-          </div>
-          <p class="form-erreur" id="form-erreur" role="alert" hidden></p>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-whatsapp btn-grand">Envoyer sur WhatsApp</button>
-            <button type="button" class="lien-email" id="btn-email">Envoyer par email</button>
-          </div>
-        </form>
+        <h3><a href="contact.html">Nous contacter</a></h3>
+        <div><p>Appelez, écrivez sur WhatsApp ou décrivez votre besoin dans le formulaire.</p></div>
       </div>
     </section>
   </main>
 
-  <!-- ================= Pied de page ================= -->
   <footer class="pied">
     <p>© <span data-annee></span> MAEVA IMMOBILIER — Gestion et construction bâtiment</p>
     <a class="lien-gestion" href="#" data-app-url>Espace gestion</a>
   </footer>
 
-  <!-- ================= Barre mobile ================= -->
   <div class="barre-mobile" aria-hidden="false">
     <a class="btn btn-plein" href="#" data-tel>Appeler</a>
     <a class="btn btn-whatsapp" href="#" data-whatsapp>WhatsApp</a>

@@ -129,6 +129,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
 }
 .nav a:hover { color: var(--marine-clair); text-decoration: underline; text-underline-offset: 4px; }
+.nav a.actif { color: var(--marine-clair); text-decoration: underline; text-underline-offset: 4px; }
 .nav-gestion {
   border-left: 1px solid #D8DCDF;
   color: #4A5764 !important;
@@ -335,6 +336,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   margin-bottom: 20px;
 }
 .contact-tel:hover { text-decoration: underline; text-underline-offset: 6px; }
+.contact-tel2 {
+  display: block;
+  font-family: var(--titre);
+  font-stretch: 80%;
+  font-weight: 700;
+  font-size: clamp(20px, 2.4vw, 30px);
+  color: var(--or-clair);
+  text-decoration: none;
+  margin-bottom: 20px;
+}
+.contact-tel2:hover { text-decoration: underline; text-underline-offset: 6px; }
 .contact-infos .btn-grand { margin-bottom: 32px; }
 .contact-ligne { margin: 0 0 14px; }
 .contact-label {
@@ -398,6 +410,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   text-decoration: underline;
   text-underline-offset: 4px;
   cursor: pointer;
+}
+
+/* Liens vers les autres pages / section accueil */
+.page-suite { margin: 32px 0 0; }
+.page-vide { color: #4A5764; font-size: 17px; }
+.section-accueil .activite h3 a {
+  color: var(--marine);
+  text-decoration: none;
+}
+.section-accueil .activite h3 a:hover {
+  color: var(--marine-clair);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* ================= Pied de page ================= */

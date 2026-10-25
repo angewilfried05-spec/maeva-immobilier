@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — MAEVA IMMOBILIER</title>
+  <meta name="description" content="Contactez MAEVA IMMOBILIER à Abidjan : téléphone, WhatsApp, email et formulaire pour vos projets de construction, rénovation ou location." />
+  <link rel="icon" type="image/png" href="assets/logo-embleme.png" />
+  <link rel="apple-touch-icon" href="assets/logo-embleme.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a class="aller-contenu" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <a class="marque" href="index.html">
+      <img class="marque-icone" src="assets/logo-embleme.png" alt="" width="36" height="36" />
+      <span class="marque-nom">MAEVA IMMOBILIER</span>
+    </a>
+    <nav class="nav" aria-label="Menu principal">
+      <a href="activites.html" data-nav="activites">Activités</a>
+      <a href="devis.html" data-nav="devis">Devis</a>
+      <a href="realisations.html" data-nav="realisations" data-photo-section>Réalisations</a>
+      <a href="contact.html" data-nav="contact">Contact</a>
+      <a class="nav-gestion" href="#" data-app-url>Espace gestion</a>
+    </nav>
+    <a class="btn btn-plein btn-appeler" href="#" data-tel>Appeler</a>
+  </header>
+
+  <main id="contenu">
+    <section class="contact" id="contact">
+      <h1 class="section-titre section-titre-clair">Contactez-nous</h1>
+      <div class="contact-grille">
+        <div class="contact-infos">
+          <a class="contact-tel" href="#" data-tel data-tel-affiche></a>
+          <a class="contact-tel2" href="#" data-tel2 data-tel2-affiche></a>
+          <a class="btn btn-whatsapp btn-grand" href="#" data-whatsapp>WhatsApp</a>
+          <p class="contact-ligne" data-email-ligne>
+            <span class="contact-label">Email</span>
+            <a href="#" data-email></a>
+          </p>
+          <p class="contact-ligne" data-adresse-ligne>
+            <span class="contact-label">Adresse</span>
+            <span data-adresse></span>
+          </p>
+          <p class="contact-ligne" data-horaires-ligne>
+            <span class="contact-label">Horaires</span>
+            <span data-horaires></span>
+          </p>
+        </div>
+        <form class="contact-form" id="form-contact" novalidate>
+          <div class="champ">
+            <label for="f-nom">Votre nom</label>
+            <input id="f-nom" name="nom" type="text" autocomplete="name" required />
+          </div>
+          <div class="champ">
+            <label for="f-tel">Votre téléphone</label>
+            <input id="f-tel" name="telephone" type="tel" autocomplete="tel" required />
+          </div>
+          <div class="champ">
+            <label for="f-besoin">Votre besoin</label>
+            <select id="f-besoin" name="besoin" required>
+              <option value="">— Choisissez —</option>
+              <option>Construction</option>
+              <option>Rénovation</option>
+              <option>Clôture</option>
+              <option>Louer un bâtiment ou un local</option>
+              <option>Acheter un bâtiment</option>
+              <option>Gestion de mes biens</option>
+              <option>Travaux publics / génie civil</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div class="champ">
+            <label for="f-message">Votre message</label>
+            <textarea id="f-message" name="message" rows="4"></textarea>
+          </div>
+          <p class="form-erreur" id="form-erreur" role="alert" hidden></p>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-whatsapp btn-grand">Envoyer sur WhatsApp</button>
+            <button type="button" class="lien-email" id="btn-email">Envoyer par email</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <p>© <span data-annee></span> MAEVA IMMOBILIER — Gestion et construction bâtiment</p>
+    <a class="lien-gestion" href="#" data-app-url>Espace gestion</a>
+  </footer>
+
+  <div class="barre-mobile" aria-hidden="false">
+    <a class="btn btn-plein" href="#" data-tel>Appeler</a>
+    <a class="btn btn-whatsapp" href="#" data-whatsapp>WhatsApp</a>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

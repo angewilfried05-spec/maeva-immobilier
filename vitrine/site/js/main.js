@@ -8,6 +8,8 @@
 
   var tel = String(cfg.telephoneInternational || '').replace(/[^\d]/g, '');
   var telAffiche = String(cfg.telephoneAffiche || '').trim();
+  var tel2 = String(cfg.telephone2International || '').replace(/[^\d]/g, '');
+  var tel2Affiche = String(cfg.telephone2Affiche || '').trim();
   var email = String(cfg.email || '').trim();
   var emailAffiche = String(cfg.emailAffiche || cfg.email || '').trim();
   var adresse = String(cfg.adresse || '').trim();
@@ -15,7 +17,7 @@
   var appUrl = String(cfg.appUrl || '').trim();
   var photos = Array.isArray(cfg.photos) ? cfg.photos.filter(function (p) { return p && p.src; }) : [];
 
-  /* ---- Téléphone : tous les boutons "Appeler" ---- */
+  /* ---- Téléphone principal : tous les boutons "Appeler" ---- */
   var telOk = tel.length >= 8;
   document.querySelectorAll('[data-tel]').forEach(function (a) {
     if (!telOk) { a.hidden = true; return; }
@@ -27,6 +29,15 @@
     var barreMobile = document.querySelector('.barre-mobile');
     if (barreMobile) barreMobile.querySelectorAll('.btn-plein').forEach(function (b) { b.hidden = true; });
   }
+
+  /* ---- Second numéro (page Contact) ---- */
+  var tel2Ok = tel2.length >= 8;
+  document.querySelectorAll('[data-tel2]').forEach(function (a) {
+    if (!tel2Ok) { a.hidden = true; return; }
+    a.setAttribute('href', 'tel:+' + tel2);
+  });
+  var tel2Lien = document.querySelector('[data-tel2-affiche]');
+  if (tel2Lien && tel2Ok) tel2Lien.textContent = tel2Affiche || ('+' + tel2);
 
   /* ---- WhatsApp ---- */
   var waOk = telOk;
@@ -70,65 +81,78 @@
     else lienApp.hidden = true;
   });
 
-  /* ---- Réalisations : section + lien de menu masqués sans photo ---- */
-  var sectionPhotos = document.querySelector('section#realisations');
-  var liensPhotos = document.querySelectorAll('.nav a[href="#realisations"]');
+  /* ---- Réalisations : lien de menu masqué sans photo ; page remplie sinon ---- */
+  var liensPhotos = document.querySelectorAll('[data-photo-section]');
   if (photos.length === 0) {
-    if (sectionPhotos) sectionPhotos.remove();
-    liensPhotos.forEach(function (a) { a.remove(); });
+    liensPhotos.forEach(function (a) { a.hidden = true; });
+    var pagePhotos = document.querySelector('[data-photo-page]');
+    if (pagePhotos) {
+      var vide = document.querySelector('[data-photos-vide]');
+      if (vide) vide.hidden = false;
+    }
   } else {
-    if (sectionPhotos) sectionPhotos.hidden = false;
     var grille = document.querySelector('[data-photos]');
-    photos.forEach(function (p) {
-      var img = document.createElement('img');
-      img.src = p.src;
-      img.alt = p.alt || 'Réalisation MAEVA IMMOBILIER';
-      img.loading = 'lazy';
-      grille.appendChild(img);
-    });
+    if (grille) {
+      photos.forEach(function (p) {
+        var img = document.createElement('img');
+        img.src = p.src;
+        img.alt = p.alt || 'Réalisation MAEVA IMMOBILIER';
+        img.loading = 'lazy';
+        grille.appendChild(img);
+      });
+    }
   }
+
+  /* ---- Lien de menu de la page courante ---- */
+  var page = location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('[data-nav]').forEach(function (a) {
+    if (a.getAttribute('href') === page) {
+      a.classList.add('actif');
+      a.setAttribute('aria-current', 'page');
+    }
+  });
 
   /* ---- Formulaire : validation + envoi WhatsApp / email ---- */
   var form = document.getElementById('form-contact');
   var erreur = document.getElementById('form-erreur');
-  var champs = {
-    nom: document.getElementById('f-nom'),
-    telephone: document.getElementById('f-tel'),
-    besoin: document.getElementById('f-besoin'),
-    message: document.getElementById('f-message'),
-  };
-  var LIBELLES = { nom: 'votre nom', telephone: 'votre téléphone', besoin: 'votre besoin' };
+  if (form && erreur) {
+    var champs = {
+      nom: document.getElementById('f-nom'),
+      telephone: document.getElementById('f-tel'),
+      besoin: document.getElementById('f-besoin'),
+      message: document.getElementById('f-message'),
+    };
+    var LIBELLES = { nom: 'votre nom', telephone: 'votre téléphone', besoin: 'votre besoin' };
 
-  function valider() {
-    var manquants = [];
-    Object.keys(LIBELLES).forEach(function (cle) {
-      var el = champs[cle];
-      var vide = !String(el.value || '').trim();
-      el.closest('.champ').classList.toggle('invalide', vide);
-      if (vide) manquants.push(LIBELLES[cle]);
-    });
-    if (manquants.length) {
-      erreur.textContent = 'Veuillez renseigner : ' + manquants.join(', ') + '.';
-      erreur.hidden = false;
-      return false;
+    function valider() {
+      var manquants = [];
+      Object.keys(LIBELLES).forEach(function (cle) {
+        var el = champs[cle];
+        var vide = !String(el.value || '').trim();
+        el.closest('.champ').classList.toggle('invalide', vide);
+        if (vide) manquants.push(LIBELLES[cle]);
+      });
+      if (manquants.length) {
+        erreur.textContent = 'Veuillez renseigner : ' + manquants.join(', ') + '.';
+        erreur.hidden = false;
+        return false;
+      }
+      erreur.hidden = true;
+      return true;
     }
-    erreur.hidden = true;
-    return true;
-  }
 
-  function texteMessage() {
-    var lignes = [
-      'Bonjour MAEVA IMMOBILIER,',
-      '',
-      'Nom : ' + champs.nom.value.trim(),
-      'Téléphone : ' + champs.telephone.value.trim(),
-      'Besoin : ' + champs.besoin.value,
-    ];
-    if (champs.message.value.trim()) lignes.push('', champs.message.value.trim());
-    return lignes.join('\n');
-  }
+    function texteMessage() {
+      var lignes = [
+        'Bonjour MAEVA IMMOBILIER,',
+        '',
+        'Nom : ' + champs.nom.value.trim(),
+        'Téléphone : ' + champs.telephone.value.trim(),
+        'Besoin : ' + champs.besoin.value,
+      ];
+      if (champs.message.value.trim()) lignes.push('', champs.message.value.trim());
+      return lignes.join('\n');
+    }
 
-  if (form) {
     Object.values(champs).forEach(function (el) {
       el.addEventListener('input', function () { el.closest('.champ').classList.remove('invalide'); });
     });
