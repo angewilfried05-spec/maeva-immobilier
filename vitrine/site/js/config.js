@@ -20,7 +20,7 @@ window.VITRINE = {
   horaires: "Lundi – vendredi : 8h – 17h",        // vide "" = masqué
 
   /* ---- Lien vers l'application de gestion (pied de page) ---- */
-  appUrl: "https://gestion.maeva-immobilier.com", // vide "" = lien "Espace gestion" masqué
+  appUrl: "https://maeva-immobilier.com",         // vide "" = lien "Espace gestion" masqué
 
   /* ---- Photos de réalisations (section + lien de menu masqués si vide) ----
      Déposez les fichiers dans assets/photos/ puis ajoutez une ligne par photo.

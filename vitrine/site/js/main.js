@@ -65,9 +65,10 @@
   /* ---- Pied de page ---- */
   var annee = document.querySelector('[data-annee]');
   if (annee) annee.textContent = String(new Date().getFullYear());
-  var lienApp = document.querySelector('[data-app-url]');
-  if (appUrl && lienApp) lienApp.setAttribute('href', appUrl);
-  else if (lienApp) lienApp.hidden = true;
+  document.querySelectorAll('[data-app-url]').forEach(function (lienApp) {
+    if (appUrl) lienApp.setAttribute('href', appUrl);
+    else lienApp.hidden = true;
+  });
 
   /* ---- Réalisations : section + lien de menu masqués sans photo ---- */
   var sectionPhotos = document.querySelector('section#realisations');

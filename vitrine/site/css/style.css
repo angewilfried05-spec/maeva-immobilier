@@ -129,6 +129,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
 }
 .nav a:hover { color: var(--marine-clair); text-decoration: underline; text-underline-offset: 4px; }
+.nav-gestion {
+  border-left: 1px solid #D8DCDF;
+  color: #4A5764 !important;
+  font-size: 14px;
+}
 .btn-appeler { margin-left: 8px; }
 
 /* ================= Boutons ================= */
