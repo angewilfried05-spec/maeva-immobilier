@@ -307,15 +307,11 @@ async function envoyerMessage(to, message) {
     try {
       envoye = await waClient.sendMessage(`${numero}@c.us`, texte);
     } catch {
+      // Renvoi uniquement si l'envoi lui-même a échoué — jamais sur un
+      // délai d'accusé (renvoyer ici créerait un doublon).
       envoye = await waClient.sendMessage(resolvedId, texte);
     }
-    let distribue = await attendreDistribution(waClient, envoye);
-    if (!distribue && resolvedId !== `${numero}@c.us`) {
-      try {
-        const renvoi = await waClient.sendMessage(resolvedId, texte);
-        distribue = await attendreDistribution(waClient, renvoi);
-      } catch {}
-    }
+    const distribue = await attendreDistribution(waClient, envoye);
     return { success: true, delivered: distribue };
   };
 
